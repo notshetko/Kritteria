@@ -717,7 +717,7 @@ Item {
                                         color: Appearance.colors.colOnTertiaryContainer
                                     }
                                     StyledText {
-                                        text: Translation.tr("Updates paused")
+                                        text: Translation.tr("Check for updates")
                                         font.weight: Font.Medium
                                         color: Appearance.colors.colOnTertiaryContainer
                                     }

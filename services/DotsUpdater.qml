@@ -17,6 +17,10 @@ Singleton {
     }
 
     function runUpdateDots() {
-        console.warn("Kritteria: automatic updates are paused to protect local customizations.")
+        Quickshell.execDetached([
+            "kitty", "--hold", "bash", "-lc",
+            "exec \"$HOME/.config/quickshell/end4-pC/scripts/kritteria-update.sh\""
+        ])
+        Qt.callLater(() => GlobalStates.settingsOpen = false)
     }
 }

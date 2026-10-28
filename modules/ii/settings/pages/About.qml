@@ -103,7 +103,7 @@ ContentPage {
                 Layout.alignment: Qt.AlignBottom | Qt.AlignRight
                 spacing: 8
                 RippleButton {
-                    buttonText: Translation.tr("Updates paused")
+                    buttonText: Translation.tr("Check for updates")
                     buttonRadius: Appearance.rounding.full
                     colBackground: Appearance.colors.colPrimaryContainer
                     colBackgroundHover: Appearance.colors.colPrimaryContainerHover
