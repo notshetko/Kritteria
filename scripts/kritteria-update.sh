@@ -148,9 +148,9 @@ fi
 
 git commit -m "Sync upstream to ${NEW:0:12}"
 
-if ! git push origin main; then
-    echo "El commit existe localmente, pero fallo el push."
-    echo "Reintenta con git push origin main"
+if ! git push --atomic origin main "$NEW:refs/heads/kritteria-upstream-base"; then
+    echo "El commit local existe, pero fallo el push."
+    echo "Revisa la conexion y el estado de Git antes de reintentar."
     exit 6
 fi
 
