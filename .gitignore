@@ -1,0 +1,12 @@
+translations/es_MX.json
+.aider*
+# Kritteria: local backups and accidental files
+*.bak
+*.bak-*
+/false
+# Kritteria: local cloud credential helper files
+/services/gCloud/token-from-key-venv.sh
+/services/gCloud/token_from_key.py
+
+# Kritteria: disabled experiments
+*.disabled
