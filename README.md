@@ -4,16 +4,17 @@
 
 <div align="center">
 
-# 💠 end4-pC
+# 💠 Kriteria [end4-pC]
 
-**A personal fork of [illogical-impulse](https://github.com/end-4/dots-hyprland) by [@end-4](https://github.com/end-4)**  
-Customized and maintained by **pctrade**
+**My dots, a personal fork of [@end4-pC](https://github.com/pctrade/end4-pC)**  
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
 </div>
 
 ---
+
+Everything here below is from end4-pC repo, need to change that.
 
 ## 🎬 Showcase
 
