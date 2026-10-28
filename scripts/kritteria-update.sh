@@ -64,6 +64,9 @@ PATHS=(
     ":(exclude)modules/ii/settings/pages/About.qml"
     ":(exclude)modules/ii/settings/DashboardHomePage.qml"
     ":(exclude)scripts/kritteria-update.sh"
+    ":(exclude)modules/common/widgets/WindowGlass.qml"
+    ":(exclude)modules/ii/bar/BarContent.qml"
+    ":(exclude)modules/ii/verticalBar/VerticalBarContent.qml"
     ":(exclude)services/gCloud/token-from-key-venv.sh"
     ":(exclude)services/gCloud/token_from_key.py"
 )
