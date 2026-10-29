@@ -24,7 +24,11 @@ Variants {
         color: "transparent"
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.namespace: "quickshell:lyrics"
-        WlrLayershell.layer: WlrLayer.Bottom
+        // When desktop widgets are unlocked, place this masked surface above the full-screen
+        // background surface so its MouseArea receives drag events. Return to Bottom when locked.
+        WlrLayershell.layer: (!Config.options.background.widgetsLocked && !GlobalStates.screenLocked)
+            ? WlrLayer.Top
+            : WlrLayer.Bottom
         WlrLayershell.keyboardFocus: GlobalStates.desktopWidgetKeyboardFocus
             ? WlrKeyboardFocus.OnDemand
             : WlrKeyboardFocus.None
