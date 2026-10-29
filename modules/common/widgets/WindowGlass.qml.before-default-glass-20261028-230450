@@ -1,0 +1,39 @@
+import QtQuick
+import qs.modules.common
+
+// Shared glass wrapper used by bars, sidebars, menus and panels.
+// This deliberately has no wallpaper-path/image loader: the compositor blurs the live backdrop.
+Item {
+    id: root
+    property real cardRadius: 0
+    property real topLeftRadius: cardRadius
+    property real topRightRadius: cardRadius
+    property real bottomRightRadius: cardRadius
+    property real bottomLeftRadius: cardRadius
+    property color tint: "transparent"
+    property bool glassEnabled: true
+    property bool fullscreenSurface: false
+    property real tintStrength: 0.48
+    property real flareLeft: 0
+    property real flareRight: 0
+    property real hangLeft: 0
+    property real hangRight: 0
+    property int edge: 0
+
+    FrostedGlass {
+        anchors.fill: parent
+        visible: root.glassEnabled && (Config.options?.background?.widgets?.glass?.enable ?? false)
+        cardRadius: root.cardRadius
+        topLeftRadius: root.topLeftRadius
+        topRightRadius: root.topRightRadius
+        bottomRightRadius: root.bottomRightRadius
+        bottomLeftRadius: root.bottomLeftRadius
+        tint: root.tint
+        tintOpacity: root.tintStrength
+        flareLeft: root.flareLeft
+        flareRight: root.flareRight
+        hangLeft: root.hangLeft
+        hangRight: root.hangRight
+        edge: root.edge
+    }
+}

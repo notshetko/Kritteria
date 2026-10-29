@@ -10,7 +10,6 @@ import qs.modules.ii.background.widgets
 import qs.modules.ii.background.widgets.clock
 import qs.modules.ii.background.widgets.weather
 import qs.modules.ii.background.widgets.media
-import qs.modules.ii.background.widgets.lyrics
 import qs.modules.ii.background.widgets.images
 import qs.modules.ii.background.widgets.resources
 import qs.modules.ii.background.widgets.visualizer
@@ -43,7 +42,6 @@ Item {
             { key: "clock", alwaysOnLock: true },
             { key: "notes" },
             { key: "media" },
-            { key: "lyrics" },
             { key: "images" },
             { key: "resources" },
             { key: "worldClock" },
@@ -76,7 +74,6 @@ Item {
                     case "clock":       return clockComp
                     case "notes":       return notesComp
                     case "media":       return mediaComp
-                    case "lyrics":      return lyricsComp
                     case "images":      return imagesComp
                     case "resources":   return resourcesComp
                     case "worldClock":  return worldClockComp
@@ -198,17 +195,6 @@ Item {
     Component {
         id: mediaComp
         MediaWidget {
-            screenWidth: root.screen.width
-            screenHeight: root.screen.height
-            scaledScreenWidth: root.screen.width
-            scaledScreenHeight: root.screen.height
-            wallpaperScale: 1
-            wallpaperItem: root.wallpaperItem
-        }
-    }
-    Component {
-        id: lyricsComp
-        LyricsDesktopWidget {
             screenWidth: root.screen.width
             screenHeight: root.screen.height
             scaledScreenWidth: root.screen.width

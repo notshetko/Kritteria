@@ -21,7 +21,6 @@ AbstractBackgroundWidget {
     property real cardWidth: (widgetWidth - cardSpacing * 2) / 3
     property bool isVertical: root.configEntry.vertical ?? false
     property bool hasBattery: Battery.available
-
     implicitWidth: row.implicitWidth
     implicitHeight: row.implicitHeight
 
@@ -37,9 +36,10 @@ AbstractBackgroundWidget {
         implicitWidth: root.cardWidth
         implicitHeight: root.cardHeight
         widget: root
+        tint: statCard.bgColor
+        tintOpacity: 0.48
         color: statCard.glass && Config.options.background.widgets.glass.enable
-           ? Qt.rgba(statCard.bgColor.r, statCard.bgColor.g, statCard.bgColor.b, 0.26)
-           : statCard.bgColor
+            ? "transparent" : statCard.bgColor
 
         ColumnLayout {
             anchors {

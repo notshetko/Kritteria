@@ -134,7 +134,7 @@ Scope {
         }
 
         function random(): void {
-            Wallpapers.randomFromCurrentFolder();
+            Quickshell.execDetached(["skwd-wall-v2", "--mixer"]);
         }
     }
 

@@ -466,6 +466,11 @@ Singleton {
                         property bool enableGlitch: true
                         property bool enableParticles: true
                         property bool enableKaraokeBall: true
+                        property string accentMode: "album"
+                        property string customAccentColor: "#b7a1ff"
+                        property real cloudOpacity: 0.72
+                        property real motionIntensity: 1.0
+                        property bool prefetchEnabled: true
                     }
                     property JsonObject media: JsonObject {
                         property bool enable: false

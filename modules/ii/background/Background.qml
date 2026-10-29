@@ -52,11 +52,8 @@ Variants {
 
         property HyprlandMonitor monitor: Hyprland.monitorFor(modelData)
 
-        property string effectiveWallpaperPath: {
-            if (GlobalStates.screenLocked && Config.options.background.lockWall !== "")
-                return Config.options.background.lockWall;
-            return Wallpapers.previewPath || Wallpapers.confirmedPath || Config.options.background.wallpaperPath;
-        }
+        // skwd-wall-v2 is the sole wallpaper renderer.
+        property string effectiveWallpaperPath: ""
 
         property bool wallpaperIsVideo: bgRoot.effectiveWallpaperPath.endsWith(".mp4") || bgRoot.effectiveWallpaperPath.endsWith(".webm") || bgRoot.effectiveWallpaperPath.endsWith(".mkv") || bgRoot.effectiveWallpaperPath.endsWith(".avi") || bgRoot.effectiveWallpaperPath.endsWith(".mov")
         property string wallpaperPath: wallpaperIsVideo ? Config.options.background.thumbnailPath : bgRoot.effectiveWallpaperPath
@@ -177,7 +174,7 @@ Variants {
         Timer {
             id: wallpaperChangeTimer
             interval: Config.options.wallpaperSelector.changeInterval
-            running: Config.options.wallpaperSelector.changeInterval > 0
+            running: false
             repeat: true
             onTriggered: {
                 if (Wallpapers.folderModel.count > 0) {

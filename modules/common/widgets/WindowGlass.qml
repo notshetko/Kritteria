@@ -1,12 +1,9 @@
 import QtQuick
-import QtQml
-import Quickshell
-import Quickshell.Io
-import qs.services
 import qs.modules.common
 
 Item {
     id: root
+
     property real cardRadius: 0
     property real topLeftRadius: cardRadius
     property real topRightRadius: cardRadius
@@ -14,195 +11,30 @@ Item {
     property real bottomLeftRadius: cardRadius
     property color tint: "transparent"
     property bool glassEnabled: true
-    property real tintStrength: 0.3
+    property bool fullscreenSurface: false
+    // end4-pC's original subtle glass tint level; the compositor provides the live blur.
+    property real tintStrength: 0.30
+    // Kept for compatibility with existing bar/panel callers.
+    property real flareLeft: 0
+    property real flareRight: 0
+    property real hangLeft: 0
+    property real hangRight: 0
+    property int edge: 0
 
-    readonly property var win: QsWindow.window
-    readonly property var scr: win?.screen ?? null
-    readonly property bool floating: !!win && win.anchors === undefined && win.anchor === undefined
-    readonly property bool popup: !!win && win.anchor !== undefined
+    readonly property real materialAlpha: Math.max(0, Math.min(1, root.tint.a * root.tintStrength))
 
-    property real floatX: 0
-    property real floatY: 0
-
-    function panelOffset(w, s) {
-        const a = w.anchors
-        const m = w.margins
-        const pushed = w.exclusionMode !== ExclusionMode.Ignore
-        const x = a?.left ? (m?.left ?? 0) + (pushed ? GlassLayers.leftZone : 0)
-            : a?.right ? s.width - w.width - (m?.right ?? 0) - (pushed ? GlassLayers.rightZone : 0)
-            : (s.width - w.width) / 2
-        const y = a?.top ? (m?.top ?? 0) + (pushed ? GlassLayers.topZone : 0)
-            : a?.bottom ? s.height - w.height - (m?.bottom ?? 0) - (pushed ? GlassLayers.bottomZone : 0)
-            : (s.height - w.height) / 2
-        return layerOffset(w, s, Qt.point(x, y))
-    }
-
-    function layerOffset(w, s, guess) {
-        const mon = GlassLayers.layers[s.name]
-        if (!mon) return guess
-        let best = null
-        let bestDist = Infinity
-        for (const level of Object.values(mon.levels ?? {})) {
-            for (const layer of level) {
-                if (!layer.namespace.startsWith("quickshell:")) continue
-                if (layer.w !== Math.round(w.width) || layer.h !== Math.round(w.height)) continue
-                const dist = Math.abs(layer.x - guess.x) + Math.abs(layer.y - guess.y)
-                if (dist < bestDist) {
-                    bestDist = dist
-                    best = layer
-                }
-            }
-        }
-        return best ? Qt.point(best.x, best.y) : guess
-    }
-
-    function popupOffset(w, s) {
-        const an = w.anchor
-        const host = an.window
-        if (!host) return Qt.point(0, 0)
-        const base = host.anchor !== undefined ? popupOffset(host, s) : panelOffset(host, s)
-        let rx = an.rect.x, ry = an.rect.y, rw = an.rect.width, rh = an.rect.height
-        if (an.item) {
-            const p = an.item.mapToItem(null, 0, 0)
-            rx = p.x; ry = p.y; rw = an.item.width; rh = an.item.height
-        }
-        const e = an.edges, g = an.gravity
-        const ax = (e & Qt.LeftEdge) ? rx : (e & Qt.RightEdge) ? rx + rw : rx + rw / 2
-        const ay = (e & Qt.TopEdge) ? ry : (e & Qt.BottomEdge) ? ry + rh : ry + rh / 2
-        const gx = (g & Qt.LeftEdge) ? ax - w.width : (g & Qt.RightEdge) ? ax : ax - w.width / 2
-        const gy = (g & Qt.TopEdge) ? ay - w.height : (g & Qt.BottomEdge) ? ay : ay - w.height / 2
-        const x = Math.max(0, Math.min(base.x + gx, s.width - w.width))
-        const y = Math.max(0, Math.min(base.y + gy, s.height - w.height))
-        return Qt.point(x, y)
-    }
-
-    readonly property point winPos: {
-        if (!win || !scr) return Qt.point(0, 0)
-        if (floating) return Qt.point(floatX, floatY)
-        if (popup) return popupOffset(win, scr)
-        return panelOffset(win, scr)
-    }
-    readonly property real winX: winPos.x
-    readonly property real winY: winPos.y
-
-    Process {
-        id: tracker
-        running: root.floating && !!root.win?.visible && root.glassEnabled && Config.options.background.widgets.glass.enable
-        command: ["bash", "-c", "while :; do hyprctl -j activewindow | tr -d '\\n'; echo; sleep 0.016; done"]
-        stdout: SplitParser {
-            onRead: line => {
-                try {
-                    const client = JSON.parse(line)
-                    if (client.title !== root.win.title || !root.scr) return
-                    const mon = HyprlandData.monitors.find(m => m.name === root.scr.name)
-                    root.floatX = client.at[0] - (mon?.x ?? 0)
-                    root.floatY = client.at[1] - (mon?.y ?? 0)
-                } catch (e) {}
-            }
-        }
-    }
-
-    property point origin: Qt.point(0, 0)
-
-    function refresh() {
-        const p = mapToItem(null, 0, 0)
-        if (p.x !== origin.x || p.y !== origin.y) origin = p
-    }
-
-    function kick() {
-        refresh()
-        if (win && !floating) GlassLayers.refresh()
-        settleTimer.restart()
-        ticker.running = true
-    }
-
-    property var ancestors: []
-
-    function rebuild() {
-        const list = []
-        for (let it = parent; it; it = it.parent) list.push(it)
-        ancestors = list
-        kick()
-    }
-
-    onParentChanged: rebuild()
-    onXChanged: kick()
-    onYChanged: kick()
-    onWidthChanged: kick()
-    onHeightChanged: kick()
-    onVisibleChanged: kick()
-    onGlassEnabledChanged: kick()
-    Component.onCompleted: rebuild()
-
-    Instantiator {
-        model: root.ancestors
-        delegate: Connections {
-            required property var modelData
-            target: modelData
-            ignoreUnknownSignals: true
-            function onXChanged() { root.kick() }
-            function onYChanged() { root.kick() }
-            function onWidthChanged() { root.kick() }
-            function onHeightChanged() { root.kick() }
-            function onScaleChanged() { root.kick() }
-            function onParentChanged() { root.rebuild() }
-        }
-    }
-
-    Connections {
-        target: root.win
-        function onWidthChanged() { root.kick() }
-        function onHeightChanged() { root.kick() }
-        function onVisibleChanged() { root.kick() }
-    }
-
-    Timer {
-        id: ticker
-        interval: 16
-        repeat: true
-        onTriggered: root.refresh()
-    }
-
-    Timer {
-        id: settleTimer
-        interval: 1000
-        onTriggered: ticker.running = false
-    }
-
-    readonly property string wallpaper: ""
-
-    Loader {
+    Rectangle {
         anchors.fill: parent
-        active: root.glassEnabled && Config.options.background.widgets.glass.enable && !!root.scr && root.wallpaper !== ""
-
-        sourceComponent: Item {
-            Image {
-                id: wallpaperImage
-                visible: false
-                width: root.scr.width
-                height: root.scr.height
-                x: -(root.winX + root.origin.x)
-                y: -(root.winY + root.origin.y)
-                source: root.wallpaper.length > 0 ? "file://" + root.wallpaper : ""
-                fillMode: Image.PreserveAspectCrop
-                sourceSize: Qt.size(Math.ceil(root.scr.width * root.scr.devicePixelRatio), Math.ceil(root.scr.height * root.scr.devicePixelRatio))
-                asynchronous: true
-                cache: true
-            }
-
-            FrostedGlass {
-                anchors.fill: parent
-                blurSource: wallpaperImage
-                cardRadius: root.cardRadius
-                topLeftRadius: root.topLeftRadius
-                topRightRadius: root.topRightRadius
-                bottomRightRadius: root.bottomRightRadius
-                bottomLeftRadius: root.bottomLeftRadius
-                tint: root.tint
-                tintOpacity: root.tintStrength
-                trackX: wallpaperImage.x
-                trackY: wallpaperImage.y
-            }
-        }
+        visible: root.glassEnabled
+            && (Config.options?.background?.widgets?.glass?.enable ?? false)
+            && root.materialAlpha > 0.005
+        radius: root.cardRadius
+        topLeftRadius: root.topLeftRadius
+        topRightRadius: root.topRightRadius
+        bottomRightRadius: root.bottomRightRadius
+        bottomLeftRadius: root.bottomLeftRadius
+        antialiasing: true
+        color: Qt.rgba(root.tint.r, root.tint.g, root.tint.b, root.materialAlpha)
+        border.width: 0
     }
 }

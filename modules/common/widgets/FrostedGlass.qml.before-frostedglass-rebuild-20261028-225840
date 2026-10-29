@@ -1,0 +1,48 @@
+import QtQuick
+
+// FrostedGlass contains no wallpaper image, screenshot, or ShaderEffectSource.
+// The live backdrop blur is provided by Hyprland on this surface's namespace;
+// this component supplies only the genuinely translucent material and its rim.
+Item {
+    id: root
+    // Kept as an optional compatibility property for existing call sites; it is never sampled.
+    property Item blurSource: null
+    property real cardRadius: 30
+    property real topLeftRadius: cardRadius
+    property real topRightRadius: cardRadius
+    property real bottomRightRadius: cardRadius
+    property real bottomLeftRadius: cardRadius
+    property color tint: "#20202a"
+    property real tintOpacity: 0.34
+    property real trackX: 0
+    property real trackY: 0
+    property real flareLeft: 0
+    property real flareRight: 0
+    property real hangLeft: 0
+    property real hangRight: 0
+    property int edge: 0
+
+    Rectangle {
+        anchors.fill: parent
+        radius: root.cardRadius
+        topLeftRadius: root.topLeftRadius
+        topRightRadius: root.topRightRadius
+        bottomRightRadius: root.bottomRightRadius
+        bottomLeftRadius: root.bottomLeftRadius
+        color: Qt.rgba(root.tint.r, root.tint.g, root.tint.b, Math.max(0.28, Math.min(0.62, root.tintOpacity)))
+        border.width: 1
+        border.color: Qt.rgba(1, 1, 1, 0.20)
+    }
+
+    // A restrained upper rim adds the glass highlight without painting a fake backdrop.
+    Rectangle {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Math.max(root.topLeftRadius, 8)
+        anchors.rightMargin: Math.max(root.topRightRadius, 8)
+        height: 1
+        color: Qt.rgba(1, 1, 1, 0.22)
+        visible: parent.height > 2
+    }
+}

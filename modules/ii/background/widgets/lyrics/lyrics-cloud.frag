@@ -31,6 +31,20 @@ float noise2(vec2 p) {
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
+
+// Fractal brownian motion gives the cloud a living, shader-like flow without photo-real smoke.
+float fbm(vec2 p) {
+    float value = 0.0;
+    float amplitude = 0.5;
+    mat2 twist = mat2(1.62, -1.18, 1.18, 1.62);
+    for (int octave = 0; octave < 5; ++octave) {
+        value += noise2(p) * amplitude;
+        p = twist * p + vec2(3.7, -2.4);
+        amplitude *= 0.5;
+    }
+    return value / 0.96875;
+}
+
 float circleSdf(vec2 p, vec2 center, float radius) {
     return length(p - center) - radius;
 }
@@ -52,28 +66,39 @@ void main() {
         cos(t * 0.27 + p.x * 1.4) * 0.035 + cos(t * 0.21) * 0.018
     );
 
-    float d = (length(vec2(p.x / 0.78, (p.y - 0.14) / 0.35)) - 1.0) * 0.35;
-    d = smoothUnion(d, circleSdf(p, vec2(-0.52, 0.03), 0.34), 0.18);
-    d = smoothUnion(d, circleSdf(p, vec2(-0.27, -0.25), 0.40), 0.18);
-    d = smoothUnion(d, circleSdf(p, vec2(0.08, -0.34), 0.43), 0.18);
-    d = smoothUnion(d, circleSdf(p, vec2(0.43, -0.15), 0.37), 0.18);
-    d = smoothUnion(d, circleSdf(p, vec2(0.62, 0.08), 0.29), 0.16);
+    // Two low-frequency fields warp the puff silhouette continuously, like a stylized Minecraft cloud shader.
+    // The drift is never reset, so the pattern flows rather than restarting a keyframe animation.
+    vec2 drift = vec2(t * 0.030, -t * 0.021);
+    vec2 warp = vec2(
+        fbm(p * 1.55 + drift),
+        fbm(p * 1.55 + vec2(9.1, -3.8) - drift.yx)
+    );
+    vec2 cloudP = p + (warp - 0.5) * 0.20;
 
-    // A tiny slow wobble keeps the outline alive without turbulent/cloud-photography noise.
-    float n = noise2(p * 2.0 + vec2(t * 0.12, -t * 0.09));
-    d += (n - 0.5) * 0.035 + sin(p.x * 5.0 + t * 0.42) * 0.012;
-    d -= uEnergy * 0.018;
+    float d = (length(vec2(cloudP.x / 0.78, (cloudP.y - 0.14) / 0.35)) - 1.0) * 0.35;
+    d = smoothUnion(d, circleSdf(cloudP, vec2(-0.52, 0.03), 0.34), 0.18);
+    d = smoothUnion(d, circleSdf(cloudP, vec2(-0.27, -0.25), 0.40), 0.18);
+    d = smoothUnion(d, circleSdf(cloudP, vec2(0.08, -0.34), 0.43), 0.18);
+    d = smoothUnion(d, circleSdf(cloudP, vec2(0.43, -0.15), 0.37), 0.18);
+    d = smoothUnion(d, circleSdf(cloudP, vec2(0.62, 0.08), 0.29), 0.16);
 
-    float body = 1.0 - smoothstep(-0.045, 0.12, d);
-    float edgeGlow = exp(-abs(d) * 13.0) * 0.095;
-    float alpha = (body * 0.38 + edgeGlow) * (0.66 + uEnergy * 0.08);
+    // Large cloudy swells and a finer, drifting texture subtly reshape the silhouette.
+    float swell = fbm(cloudP * 2.35 + drift * 1.35);
+    float detail = fbm(cloudP * 5.4 - drift * 1.7 + vec2(2.8, 6.2));
+    d += (swell - 0.5) * 0.105 + (detail - 0.5) * 0.035;
+    d -= uEnergy * 0.012;
+
+    float body = 1.0 - smoothstep(-0.052, 0.115, d);
+    float edgeGlow = exp(-abs(d) * 13.0) * (0.065 + swell * 0.035);
+    float cloudVolume = 0.62 + smoothstep(0.28, 0.78, swell) * 0.26 + detail * 0.12;
+    float alpha = (body * 0.34 * cloudVolume + edgeGlow) * (0.66 + uEnergy * 0.08);
 
     // Gentle, flat pastel bands rather than realistic volumetric shading.
-    float band = smoothstep(-0.7, 0.7, p.x + sin(t * 0.18 + p.y * 2.0) * 0.12);
+    float band = smoothstep(-0.7, 0.7, cloudP.x + (swell - 0.5) * 0.42 + sin(t * 0.18 + cloudP.y * 2.0) * 0.12);
     vec3 cloud = mix(uColorA.rgb, uColorB.rgb, band * 0.72);
-    float highlight = 1.0 - smoothstep(-0.25, 0.38, p.y + sin(p.x * 2.6 + t * 0.2) * 0.035) * body;
-    cloud = mix(cloud, uColorC.rgb, highlight * 0.28);
-    cloud *= 0.94 + n * 0.08;
+    float highlight = 1.0 - smoothstep(-0.25, 0.38, cloudP.y + sin(cloudP.x * 2.6 + t * 0.2) * 0.035 + (detail - 0.5) * 0.12) * body;
+    cloud = mix(cloud, uColorC.rgb, highlight * (0.22 + swell * 0.12));
+    cloud *= 0.88 + swell * 0.16 + detail * 0.05;
 
     // A few low-contrast sparkles remain inside the shape, never across the widget rectangle.
     vec2 grid = uv * vec2(10.0, 6.0);

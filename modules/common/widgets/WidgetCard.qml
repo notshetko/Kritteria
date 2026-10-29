@@ -7,11 +7,13 @@ Rectangle {
     property bool blurred: Config.options.background.widgets.blurWidgets
     property bool shadowed: Config.options.background.widgets.shadow
     property color tint: Appearance.colors.colLayer1
-    property real tintOpacity: 0.55
+    property real tintOpacity: 0.48
     property bool glass: true
 
     radius: Appearance.rounding?.verylarge ?? 30
-    color: glass && Config.options.background.widgets.glass.enable ? Qt.rgba(Appearance.colors.colPrimaryContainer.r, Appearance.colors.colPrimaryContainer.g, Appearance.colors.colPrimaryContainer.b, 0.26) : Appearance.colors.colPrimaryContainer
+    color: root.widget?.configEntryName === "resources"
+        && root.glass && Config.options.background.widgets.glass.enable
+        ? "transparent" : Appearance.colors.colPrimaryContainer
 
     StyledRectangularShadow {
         target: root
@@ -19,25 +21,26 @@ Rectangle {
         visible: root.shadowed
     }
 
+    // Native live backdrop glass only on resource cards. Lyrics and visualizer do not use WidgetCard.
     FrostedGlass {
         anchors.fill: parent
-        blurSource: root.widget.wallpaperItem
+        blurSource: null
         cardRadius: root.radius
-        tint: Appearance.colors.colPrimaryContainer
-        trackX: root.widget.x + root.x
-        trackY: root.widget.y + root.y
-        visible: false // No usar el shader con la imagen anterior
-    }
-
-    FastBlurred {
-        anchors.fill: parent
-        anchors.margins: root.blurred ? -1 : 0
-        blurSource: root.widget.wallpaperItem
-        cardRadius: root.radius + (root.blurred ? 1 : 0)
         tint: root.tint
         tintOpacity: root.tintOpacity
-        trackX: root.widget.x + root.x
-        trackY: root.widget.y + root.y
-        visible: false // Evitar blur QML basado en la imagen anterior
+        visible: root.widget?.configEntryName === "resources"
+            && root.glass
+            && Config.options.background.widgets.glass.enable
+    }
+
+    // The old QML FastBlur required a wallpaper texture, which Kritteria intentionally removed.
+    // Native Hyprland blur replaces it; keep the compatibility setting without sampling a fake image.
+    FastBlurred {
+        anchors.fill: parent
+        blurSource: null
+        cardRadius: root.radius
+        tint: root.tint
+        tintOpacity: root.tintOpacity
+        visible: false
     }
 }

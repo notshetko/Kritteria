@@ -33,6 +33,7 @@ AbstractBackgroundWidget {
     property real audioEnergy: 0.08
     property real lyricBounce: 0
     property bool songDone: false
+    property bool settingsOpen: false
     property int activeWordIndex: -1
     property real activeWordProgress: 0
     property real karaokeHop: 0
@@ -66,22 +67,24 @@ AbstractBackgroundWidget {
     property color albumSecondaryColor: Appearance.colors.colSecondary ?? "#8bc8ff"
     readonly property color albumGlowColor: root.albumBaseColor
     readonly property color lyricColor: {
+        if (String(root.configEntry.accentMode ?? "album") === "custom") return root.configEntry.customAccentColor ?? "#b7a1ff"
+        if (String(root.configEntry.accentMode ?? "album") === "theme") return Appearance.colors.colPrimary ?? "#b7a1ff"
         const c = root.albumBaseColor
         const luminance = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722
         return luminance < 0.40 ? Qt.lighter(c, 2.55) : luminance > 0.82 ? Qt.darker(c, 1.18) : Qt.lighter(c, 1.25)
     }
-    readonly property color accentColor: root.albumSecondaryColor
+    readonly property color accentColor: {
+        const mode = String(root.configEntry.accentMode ?? "album")
+        if (mode === "theme") return Appearance.colors.colPrimary ?? "#b7a1ff"
+        if (mode === "custom") return root.configEntry.customAccentColor ?? "#b7a1ff"
+        return root.albumSecondaryColor
+    }
     readonly property color mutedColor: Qt.lighter(root.albumBaseColor, 1.42)
     readonly property color shadowColor: Qt.darker(root.lyricColor, 2.8)
     readonly property color albumCloudColorA: Qt.lighter(root.albumBaseColor, 1.42)
     readonly property color albumCloudColorB: root.albumBaseColor
     readonly property color albumCloudColorC: root.albumSecondaryColor
 
-    onAlbumArtUrlChanged: {
-        root.albumBaseColor = Appearance.colors.colPrimary ?? "#b7a1ff"
-        root.albumSecondaryColor = Appearance.colors.colSecondary ?? "#8bc8ff"
-        if (albumArtSource.status === Image.Ready) paletteSampler.requestPaint()
-    }
 
     function featureEnabled(key) {
         if (key === "blur") return root.blurEnabled
@@ -266,9 +269,26 @@ AbstractBackgroundWidget {
     Timer { id: instrumentalOnDelay; interval: 1000; onTriggered: { if (root.instrumentalCandidate) root.instrumentalNow = true } }
     Timer { id: instrumentalOffDelay; interval: 500; onTriggered: { if (!root.instrumentalCandidate) root.instrumentalNow = false } }
 
+    function resetAlbumPalette() {
+        // Reset immediately on track/art change so the previous song's palette never sticks.
+        root.albumBaseColor = Appearance.colors.colPrimary ?? "#b7a1ff"
+        root.albumSecondaryColor = Appearance.colors.colSecondary ?? "#8bc8ff"
+        paletteSampler.requestPaint()
+    }
+    onAlbumArtUrlChanged: {
+        resetAlbumPalette()
+        albumArtSource.source = ""
+        albumArtSource.source = root.albumArtUrl
+        paletteRetry.restart()
+    }
     Connections {
         target: LyricsService.activePlayer
-        function onTrackTitleChanged() { root.songDone = false; root.transitionMark = true; transitionTimer.restart() }
+        function onTrackTitleChanged() {
+            root.songDone = false
+            root.transitionMark = true
+            root.resetAlbumPalette()
+            transitionTimer.restart()
+        }
     }
     Timer { id: transitionTimer; interval: 850; onTriggered: root.transitionMark = false }
 
@@ -290,7 +310,14 @@ AbstractBackgroundWidget {
             sourceSize.width: 48
             sourceSize.height: 48
             fillMode: Image.PreserveAspectCrop
+            onSourceChanged: if (source && source.toString().length > 0) paletteRetry.restart()
             onStatusChanged: if (status === Image.Ready) paletteSampler.requestPaint()
+        }
+        Timer {
+            id: paletteRetry
+            interval: 120
+            repeat: false
+            onTriggered: if (albumArtSource.status === Image.Ready) paletteSampler.requestPaint()
         }
         Canvas {
             id: paletteSampler
@@ -347,9 +374,9 @@ AbstractBackgroundWidget {
         ShaderEffect {
             id: cloudShader
             anchors.fill: parent
-            visible: false // Shader desactivado para evitar el artefacto azul
+            visible: root.backgroundEnabled && status === ShaderEffect.Compiled && (LyricsService.playing || opacity > 0.01)
             // Transparent outside the central stylized cloud; never paint the widget bounds.
-            opacity: root.backgroundEnabled && LyricsService.playing ? 0.72 : 0
+            opacity: root.backgroundEnabled && LyricsService.playing ? Number(root.configEntry.cloudOpacity ?? 0.72) : 0
             fragmentShader: Qt.resolvedUrl("lyrics-cloud.frag.qsb")
             property real uTime: root.shimmer
             property real uEnergy: root.audioEnergy
@@ -894,6 +921,25 @@ AbstractBackgroundWidget {
                         }
                     }
                 }
+                Text {
+                    id: settingsToggle
+                    text: root.settingsOpen ? "close" : "tune"
+                    color: root.accentColor
+                    font.family: "Material Symbols Rounded"
+                    font.pixelSize: 18
+                    anchors.verticalCenter: parent.verticalCenter
+                    ToolTip.text: "Abrir Lyrica Studio"
+                    ToolTip.visible: settingsMouse.containsMouse
+                    ToolTip.delay: 350
+                    MouseArea {
+                        id: settingsMouse
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.settingsOpen = !root.settingsOpen
+                    }
+                }
                 Rectangle { width: 1; height: 18; color: root.accentColor; opacity: 0.36; anchors.verticalCenter: parent.verticalCenter }
                 Text {
                     id: sourceToggle
@@ -949,6 +995,21 @@ AbstractBackgroundWidget {
                 }
             }
         }
+    }
+
+    LyricaSettings {
+        id: lyricaSettings
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.topMargin: 46
+        anchors.rightMargin: 20
+        width: Math.min(420, Math.max(320, root.width * 0.38))
+        height: Math.min(root.height - 58, 510)
+        z: 100
+        configEntry: root.configEntry
+        open: root.settingsOpen && !Config.options.background.widgetsLocked
+        accent: root.accentColor
+        surfaceColor: Appearance.colors.colSurfaceContainer ?? Appearance.colors.colLayer1 ?? "#281c38"
     }
 
     ResizeHandler {

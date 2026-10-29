@@ -1,0 +1,59 @@
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import Quickshell
+import Quickshell.Wayland
+import qs
+import qs.modules.ii.background.widgets.resources
+
+// Separate surface so Hyprland can blur only the resource cards, not the lyrics.
+Variants {
+    id: root
+    model: Quickshell.screens
+
+    PanelWindow {
+        id: resourcesPanel
+        required property var modelData
+        screen: modelData
+
+        anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+        }
+
+        color: "transparent"
+        WlrLayershell.namespace: "quickshell:resources"
+        WlrLayershell.layer: WlrLayer.Bottom
+
+        readonly property bool resourceWidgetEnabled:
+            Config.options.background.widgets.resources.enable
+            && (Config.options.background.screenList.length === 0
+                || Config.options.background.screenList.includes(screen.name))
+
+        Item {
+            id: resourcesCanvas
+            anchors.fill: parent
+
+            // This is only a placeholder for the widget API. It deliberately does not
+            // sample or paint an old wallpaper; Hyprland blurs the live layer beneath.
+            Item {
+                id: neutralWallpaperSource
+                anchors.fill: parent
+            }
+
+            ResourcesWidget {
+                width: implicitWidth
+                height: implicitHeight
+                screenWidth: resourcesPanel.screen.width
+                screenHeight: resourcesPanel.screen.height
+                scaledScreenWidth: resourcesPanel.screen.width
+                scaledScreenHeight: resourcesPanel.screen.height
+                wallpaperScale: 1
+                wallpaperItem: neutralWallpaperSource
+                visible: resourcesPanel.resourceWidgetEnabled && opacity > 0
+            }
+        }
+    }
+}

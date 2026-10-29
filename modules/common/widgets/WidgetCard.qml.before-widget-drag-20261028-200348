@@ -1,0 +1,25 @@
+import QtQuick
+import qs.modules.common
+
+Rectangle {
+    id: root
+    required property var widget
+    property bool blurred: Config.options.background.widgets.blurWidgets
+    property bool shadowed: Config.options.background.widgets.shadow
+    property color tint: Appearance.colors.colLayer1
+    property real tintOpacity: 0.55
+    property bool glass: true
+
+    radius: Appearance.rounding?.verylarge ?? 30
+    // Resource glass is rendered behind this widget by ResourceGlassLayer.qml.
+    // Keeping this surface transparent lets the live compositor blur show through.
+    color: root.widget?.configEntryName === "resources"
+        && root.glass && Config.options.background.widgets.glass.enable
+        ? "transparent" : Appearance.colors.colPrimaryContainer
+
+    StyledRectangularShadow {
+        target: root
+        z: -2
+        visible: root.shadowed
+    }
+}

@@ -1,56 +1,51 @@
 import QtQuick
-import qs.modules.common
 
+// True translucent material. No wallpaper file, screenshot, or QML texture capture.
+// Hyprland supplies the live backdrop blur for this surface, clipped by this item alpha.
 Item {
     id: root
-    required property Item blurSource
+    // Compatibility only: old call sites may pass this, but it is never sampled.
+    property Item blurSource: null
     property real cardRadius: 30
     property real topLeftRadius: cardRadius
     property real topRightRadius: cardRadius
     property real bottomRightRadius: cardRadius
     property real bottomLeftRadius: cardRadius
-    property color tint: "white"
-    property real tintOpacity: 0.3
-    readonly property real rimWidth: 4
-    readonly property real pull: 0
-    readonly property real split: 0
-    readonly property real haze: 6
-    readonly property real vividness: 1.25
-    readonly property real sheen: 0.31
+    property color tint: "#242531"
+    property real tintOpacity: 0.48
     property real trackX: 0
     property real trackY: 0
+    property real flareLeft: 0
+    property real flareRight: 0
+    property real hangLeft: 0
+    property real hangRight: 0
+    property int edge: 0
 
-    ShaderEffectSource {
-        id: capture
-        sourceItem: root.blurSource
-        sourceRect: {
-            var _fx = root.trackX
-            var _fy = root.trackY
-            if (!root.blurSource) return Qt.rect(0, 0, 0, 0)
-            var pt = root.mapToItem(root.blurSource, 0, 0)
-            return Qt.rect(pt.x, pt.y, root.width, root.height)
-        }
-        mipmap: true
-        hideSource: false
-        live: true
-        visible: false
+    readonly property real materialAlpha: Math.max(0, Math.min(1, root.tintOpacity * root.tint.a))
+
+    Rectangle {
+        anchors.fill: parent
+        radius: root.cardRadius
+        topLeftRadius: root.topLeftRadius
+        topRightRadius: root.topRightRadius
+        bottomRightRadius: root.bottomRightRadius
+        bottomLeftRadius: root.bottomLeftRadius
+        antialiasing: true
+        color: Qt.rgba(root.tint.r, root.tint.g, root.tint.b, root.materialAlpha)
+        border.width: 1
+        border.color: Qt.rgba(1, 1, 1, 0.18 * root.materialAlpha)
     }
 
-    ShaderEffect {
-        anchors.fill: parent
-        visible: root.blurSource !== null && root.width > 0 && root.height > 0
-
-        property var backdrop: capture
-        property vector2d size: Qt.vector2d(width, height)
-        property vector4d radii: Qt.vector4d(root.topLeftRadius, root.topRightRadius, root.bottomRightRadius, root.bottomLeftRadius)
-        property real rimWidth: root.rimWidth
-        property real pull: root.pull
-        property real split: root.split
-        property real haze: root.haze
-        property real vividness: root.vividness
-        property real sheen: root.sheen
-        property color wash: Qt.rgba(root.tint.r, root.tint.g, root.tint.b, root.tintOpacity)
-
-        fragmentShader: Qt.resolvedUrl("shaders/frostedLens.frag.qsb")
+    // Fine highlight, inset to follow the same rounded card rather than making a second edge.
+    Rectangle {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Math.max(root.topLeftRadius * 0.72, 5)
+        anchors.rightMargin: Math.max(root.topRightRadius * 0.72, 5)
+        height: 1
+        radius: 0.5
+        color: Qt.rgba(1, 1, 1, 0.16 * root.materialAlpha)
+        visible: parent.height > 3 && root.materialAlpha > 0.05
     }
 }

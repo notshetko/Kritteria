@@ -1,0 +1,85 @@
+// KRITTERIA TRUE FROSTED GLASS: dedicated live-backdrop resource card layer.
+pragma ComponentBehavior: Bound
+
+import QtQuick
+import Quickshell
+import Quickshell.Wayland
+import qs
+import qs.modules.common
+import qs.modules.common.widgets
+
+// One dedicated, input-masked layer for the resource-card backplates.
+// Hyprland blurs the live pixels underneath this layer; no JPG or wallpaperPath is used.
+Variants {
+    id: root
+    model: Quickshell.screens
+
+    PanelWindow {
+        id: panel
+        required property var modelData
+        screen: modelData
+        visible: Config.ready
+            && Config.options.background.widgets.resources.enable
+            && Config.options.background.widgets.glass.enable
+            && (Config.options.background.screenList.length === 0
+                || Config.options.background.screenList.includes(modelData.name))
+            && (!GlobalStates.screenLocked || Config.options.lock.showWidgets)
+
+        color: "transparent"
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.namespace: "quickshell:resourceglass"
+        WlrLayershell.layer: WlrLayer.Bottom
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        anchors { top: true; bottom: true; left: true; right: true }
+
+        property var resourceConfig: Config.options.background.widgets.resources
+        readonly property real cardSpacing: 12
+        readonly property real cardHeight: 120
+        readonly property real cardWidth: (420 - cardSpacing * 2) / 3
+        readonly property bool vertical: resourceConfig.vertical ?? false
+        readonly property real groupWidth: vertical ? cardWidth : 420
+        readonly property real groupHeight: vertical ? cardHeight * 3 + cardSpacing * 2 : cardHeight
+        readonly property real groupX: Math.max(0, Math.min(resourceConfig.x ?? 0, modelData.width - groupWidth))
+        readonly property real groupY: Math.max(0, Math.min(resourceConfig.y ?? 0, modelData.height - groupHeight))
+        readonly property real cornerRadius: Appearance.rounding?.verylarge ?? 30
+
+        // Limit the surface input region to the cards; the overlay cannot eat desktop clicks elsewhere.
+        mask: Region { item: glassBounds }
+
+        Item {
+            id: glassBounds
+            x: panel.groupX
+            y: panel.groupY
+            width: panel.groupWidth
+            height: panel.groupHeight
+
+            FrostedGlass {
+                x: panel.vertical ? 0 : 0
+                y: 0
+                width: panel.cardWidth
+                height: panel.cardHeight
+                cardRadius: panel.cornerRadius
+                tint: Appearance.colors.colPrimaryContainer
+                tintOpacity: 0.36
+            }
+            FrostedGlass {
+                x: panel.vertical ? 0 : panel.cardWidth + panel.cardSpacing
+                y: panel.vertical ? panel.cardHeight + panel.cardSpacing : 0
+                width: panel.cardWidth
+                height: panel.cardHeight
+                cardRadius: panel.cornerRadius
+                tint: Appearance.colors.colSecondaryContainer
+                tintOpacity: 0.36
+            }
+            FrostedGlass {
+                x: panel.vertical ? 0 : (panel.cardWidth + panel.cardSpacing) * 2
+                y: panel.vertical ? (panel.cardHeight + panel.cardSpacing) * 2 : 0
+                width: panel.cardWidth
+                height: panel.cardHeight
+                cardRadius: panel.cornerRadius
+                tint: Appearance.colors.colTertiaryContainer
+                tintOpacity: 0.36
+            }
+        }
+    }
+}

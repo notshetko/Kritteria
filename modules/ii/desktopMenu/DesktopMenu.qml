@@ -144,65 +144,28 @@ Scope {
                     anchors { fill: parent; margins: 8 }
                     spacing: 4
 
-                    Rectangle {
-                        Layout.fillWidth: true
-                        implicitHeight: 160
-                        radius: Appearance.rounding.verylarge
-                        color: Qt.rgba((Appearance.colors.colUiBackground).r, (Appearance.colors.colUiBackground).g, (Appearance.colors.colUiBackground).b, 0.28)
-                        clip: true
-
-                        WindowGlass {
-                            anchors.fill: parent
-                            cardRadius: parent.radius
-                            tint: parent.color
-                        }
-
-                        Carousel {
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            model: root.carouselModel
-                            onWallpaperSelected: (path) => {
-                                Wallpapers.select(path, Appearance.m3colors.darkmode)
-                                GlobalStates.desktopMenuOpen = false
-                            }
-                        }
-                    }
-
                     GroupedList {
                         Layout.fillWidth: true
                         itemVerticalPadding: 16
                         bgcolor: Appearance.colors.colUiBackground
                         glass: true
 
-                        // Wallpapers
+                        // skwd-wall-v2: abrir el selector externo
                         RippleButton {
-                            id: wallpaperRow
                             implicitHeight: 40
                             colBackground: "transparent"
                             colBackgroundHover: Appearance.colors.colLayer2
                             contentItem: RowLayout {
                                 anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
                                 spacing: 12
-                                MaterialSymbol { text: "format_paint"; iconSize: Appearance.font.pixelSize.larger; color: Appearance.colors.colOnLayer1 }
-                                StyledText { Layout.fillWidth: true; text: "Wallpaper & style"; font.pixelSize: Appearance.font.pixelSize.normal; color: Appearance.colors.colOnLayer1 }
+                                MaterialSymbol { text: "image"; iconSize: Appearance.font.pixelSize.larger; color: Appearance.colors.colOnLayer1 }
+                                StyledText { Layout.fillWidth: true; text: "Wallpapers (skwd-wall)"; font.pixelSize: Appearance.font.pixelSize.normal; color: Appearance.colors.colOnLayer1 }
                                 MaterialSymbol { text: "chevron_right"; iconSize: Appearance.font.pixelSize.normal; color: Appearance.colors.colOnLayer1; opacity: 0.4 }
                             }
-                            Component {
-                                id: wallpaperSubmenu
-                                WallpaperSubmenu {}
+                            onClicked: {
+                                GlobalStates.desktopMenuOpen = false
+                                Quickshell.execDetached(["skwd-wall-v2"])
                             }
-                            HoverHandler {
-                                onHoveredChanged: {
-                                    if (hovered) {
-                                        submenuCloseTimer.stop()
-                                        menuWindow.submenuAnchorY = menuCard.y + wallpaperRow.mapToItem(menuCard, 0, 0).y
-                                        menuWindow.openSubmenuComponent = wallpaperSubmenu
-                                    } else {
-                                        submenuCloseTimer.restart()
-                                    }
-                                }
-                            }
-                            onClicked: GlobalStates.desktopMenuOpen = false
                         }
 
                         // Widgets
@@ -269,6 +232,7 @@ Scope {
                             }
                         }
 
+                        // Mezclador de audio y escenas de skwd-wall-v2
                         RippleButton {
                             implicitHeight: 40
                             colBackground: "transparent"
@@ -276,22 +240,13 @@ Scope {
                             contentItem: RowLayout {
                                 anchors { fill: parent; leftMargin: 12; rightMargin: 12 }
                                 spacing: 12
-                                MaterialSymbol { text: "video_template"; iconSize: Appearance.font.pixelSize.larger; color: Appearance.colors.colOnLayer1 }
-                                StyledText { Layout.fillWidth: true; text: "Live Wallpaper"; font.pixelSize: Appearance.font.pixelSize.normal; color: Appearance.colors.colOnLayer1 }
-                                MaterialSymbol {
-                                    visible: DropShelf.items.length === 0
-                                    text: "chevron_right"
-                                    iconSize: Appearance.font.pixelSize.normal
-                                    color: Appearance.colors.colOnLayer1
-                                    opacity: 0.4
-                                }
+                                MaterialSymbol { text: "tune"; iconSize: Appearance.font.pixelSize.larger; color: Appearance.colors.colOnLayer1 }
+                                StyledText { Layout.fillWidth: true; text: "Wallpaper mixer"; font.pixelSize: Appearance.font.pixelSize.normal; color: Appearance.colors.colOnLayer1 }
+                                MaterialSymbol { text: "chevron_right"; iconSize: Appearance.font.pixelSize.normal; color: Appearance.colors.colOnLayer1; opacity: 0.4 }
                             }
                             onClicked: {
                                 GlobalStates.desktopMenuOpen = false
-                                Wallpapers.openFallbackPicker(
-                                    Appearance.m3colors.darkmode,
-                                    Config.options.wallpaperSelector.liveWallpapersPath ?? ""
-                                )
+                                Quickshell.execDetached(["skwd-wall-v2", "--mixer"])
                             }
                         }
 
