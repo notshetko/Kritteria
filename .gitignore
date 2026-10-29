@@ -10,3 +10,8 @@ translations/es_MX.json
 
 # Kritteria: disabled experiments
 *.disabled
+
+# Backups temporales locales
+*.before-*
+*.repair-*
+*.removed-*
