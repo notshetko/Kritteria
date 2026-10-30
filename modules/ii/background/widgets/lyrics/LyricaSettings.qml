@@ -9,6 +9,7 @@ Rectangle {
     required property var configEntry
     property bool open: false
     property color accent: "#b7a1ff"
+    readonly property color studioAccent: "#b9a9d6"
     property color surfaceColor: "#281c38"
 
     function setValue(key, value) {
@@ -91,7 +92,7 @@ Rectangle {
 
     visible: open
     opacity: open ? 1 : 0
-    radius: 24
+    radius: 20
     color: Qt.darker(surfaceColor, 1.035)
     border.width: 1
     border.color: Qt.rgba(accent.r, accent.g, accent.b, 0.62)
@@ -100,8 +101,8 @@ Rectangle {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 15
-        spacing: 10
+        anchors.margins: 12
+        spacing: 8
 
         RowLayout {
             Layout.fillWidth: true
@@ -110,12 +111,12 @@ Rectangle {
                 width: 38
                 height: 38
                 radius: 13
-                color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.16)
-                border.color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.28)
+                color: Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.16)
+                border.color: Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.28)
                 Text {
                     anchors.centerIn: parent
                     text: "✦"
-                    color: root.accent
+                    color: root.studioAccent
                     font.pixelSize: 22
                 }
             }
@@ -136,7 +137,7 @@ Rectangle {
             Item { Layout.fillWidth: true }
             Label {
                 text: "STUDIO"
-                color: root.accent
+                color: root.studioAccent
                 font.pixelSize: 9
                 font.bold: true
                 font.letterSpacing: 1.3
@@ -146,7 +147,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.25)
+            color: Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.25)
         }
 
         ScrollView {
@@ -157,20 +158,20 @@ Rectangle {
 
             ColumnLayout {
                 width: Math.max(0, parent.width)
-                spacing: 13
+                spacing: 9
 
                 Label {
                     text: "ESCENAS"
-                    color: root.accent
+                    color: root.studioAccent
                     font.pixelSize: 10
                     font.bold: true
                     font.letterSpacing: 1.5
                 }
                 GridLayout {
                     Layout.fillWidth: true
-                    columns: 2
-                    rowSpacing: 7
-                    columnSpacing: 7
+                    columns: width < 350 ? 1 : 2
+                    rowSpacing: 6
+                    columnSpacing: 6
                     Repeater {
                         model: [
                             { id: "dreamy", title: "Dreamy", sub: "Suave y etéreo", glyph: "cloud" },
@@ -178,39 +179,65 @@ Rectangle {
                             { id: "minimal", title: "Minimal", sub: "Limpio y ligero", glyph: "circle" },
                             { id: "karaoke", title: "Karaoke", sub: "Voz protagonista", glyph: "lyrics" }
                         ]
-                        delegate: Button {
+                        delegate: Rectangle {
+                            id: presetCard
                             required property var modelData
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 54
-                            onClicked: root.applyPreset(modelData.id)
-                            background: Rectangle {
-                                radius: 13
-                                color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.10)
-                                border.width: 1
-                                border.color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.25)
-                            }
-                            contentItem: RowLayout {
-                                spacing: 8
-                                Text {
-                                    text: modelData.glyph
-                                    color: root.accent
-                                    font.family: "Material Symbols Rounded"
-                                    font.pixelSize: 19
+                            Layout.preferredHeight: 58
+                            radius: 13
+                            color: presetMouse.pressed
+                                ? Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.22)
+                                : presetMouse.containsMouse
+                                    ? Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.14)
+                                    : "#ffffff08"
+                            border.width: 1
+                            border.color: presetMouse.containsMouse
+                                ? Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.52)
+                                : "#ffffff20"
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 11
+                                anchors.rightMargin: 8
+                                spacing: 9
+                                Rectangle {
+                                    Layout.preferredWidth: 29
+                                    Layout.preferredHeight: 29
+                                    radius: 10
+                                    color: Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.16)
+                                    Label {
+                                        anchors.centerIn: parent
+                                        text: ["✧", "✦", "○", "♫"][index]
+                                        color: root.studioAccent
+                                        font.pixelSize: 17
+                                    }
                                 }
                                 ColumnLayout {
-                                    spacing: 0
+                                    Layout.fillWidth: true
+                                    spacing: 1
                                     Label {
-                                        text: modelData.title
-                                        color: "white"
+                                        text: presetCard.modelData.title
+                                        color: "#f2eef7"
                                         font.pixelSize: 11
                                         font.bold: true
                                     }
                                     Label {
-                                        text: modelData.sub
-                                        color: "#bcb5ca"
+                                        text: presetCard.modelData.sub
+                                        color: "#aaa2b5"
                                         font.pixelSize: 9
                                     }
                                 }
+                                Label {
+                                    text: "›"
+                                    color: root.studioAccent
+                                    font.pixelSize: 18
+                                }
+                            }
+                            MouseArea {
+                                id: presetMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.applyPreset(presetCard.modelData.id)
                             }
                         }
                     }
@@ -219,8 +246,8 @@ Rectangle {
                 Rectangle {
                     Layout.fillWidth: true
                     radius: 15
-                    color: "#ffffff08"
-                    border.color: "#ffffff12"
+                    color: "#ffffff06"
+                    border.color: "#ffffff16"
                     implicitHeight: paletteColumn.implicitHeight + 20
                     ColumnLayout {
                         id: paletteColumn
@@ -229,7 +256,7 @@ Rectangle {
                         spacing: 8
                         Label {
                             text: "APARIENCIA Y COLOR"
-                            color: root.accent
+                            color: root.studioAccent
                             font.pixelSize: 10
                             font.bold: true
                             font.letterSpacing: 1.2
@@ -245,7 +272,7 @@ Rectangle {
                             Layout.fillWidth: true
                             Label { text: "Color personalizado"; color: "#ddd6e8"; Layout.fillWidth: true; font.pixelSize: 11 }
                             TextField {
-                                Layout.preferredWidth: 112
+                                Layout.preferredWidth: 96
                                 text: String(root.configEntry.customAccentColor ?? "#b7a1ff")
                                 placeholderText: "#b7a1ff"
                                 onEditingFinished: if (/^#[0-9a-fA-F]{6}$/.test(text)) root.setValue("customAccentColor", text)
@@ -264,7 +291,7 @@ Rectangle {
                             }
                             Label {
                                 text: Math.round(Number(root.configEntry.cloudOpacity ?? 0.72) * 100) + "%"
-                                color: root.accent
+                                color: root.studioAccent
                                 font.pixelSize: 10
                                 Layout.preferredWidth: 34
                             }
@@ -282,7 +309,7 @@ Rectangle {
                             }
                             Label {
                                 text: Math.round(Number(root.configEntry.glowIntensity ?? 1.0) * 100) + "%"
-                                color: root.accent
+                                color: root.studioAccent
                                 font.pixelSize: 10
                                 Layout.preferredWidth: 38
                             }
@@ -303,7 +330,7 @@ Rectangle {
                         spacing: 8
                         Label {
                             text: "MOVIMIENTO Y PROFUNDIDAD"
-                            color: root.accent
+                            color: root.studioAccent
                             font.pixelSize: 10
                             font.bold: true
                             font.letterSpacing: 1.2
@@ -344,7 +371,7 @@ Rectangle {
                         spacing: 7
                         Label {
                             text: "EFECTOS AMBIENTALES"
-                            color: root.accent
+                            color: root.studioAccent
                             font.pixelSize: 10
                             font.bold: true
                             font.letterSpacing: 1.2
@@ -368,7 +395,7 @@ Rectangle {
                         spacing: 8
                         Label {
                             text: "KARAOKE Y LETRAS"
-                            color: root.accent
+                            color: root.studioAccent
                             font.pixelSize: 10
                             font.bold: true
                             font.letterSpacing: 1.2
@@ -404,7 +431,7 @@ Rectangle {
                     Item { Layout.fillWidth: true }
                     Label {
                         text: "LYRICA • STUDIO"
-                        color: root.accent
+                        color: root.studioAccent
                         font.pixelSize: 9
                         font.letterSpacing: 1.0
                     }
