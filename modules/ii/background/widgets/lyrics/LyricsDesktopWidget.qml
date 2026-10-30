@@ -76,14 +76,14 @@ AbstractBackgroundWidget {
     readonly property color albumGlowColor: root.albumBaseColor
     readonly property color lyricColor: {
         if (String(root.configEntry.accentMode ?? "album") === "custom") return root.configEntry.customAccentColor ?? "#b7a1ff"
-        if (String(root.configEntry.accentMode ?? "album") === "theme") return Appearance.colors.colPrimary ?? "#b7a1ff"
+        if (String(root.configEntry.accentMode ?? "album") === "theme") return "#d0bcff"
         const c = root.albumBaseColor
         const luminance = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722
         return luminance < 0.40 ? Qt.lighter(c, 2.55) : luminance > 0.82 ? Qt.darker(c, 1.18) : Qt.lighter(c, 1.25)
     }
     readonly property color accentColor: {
         const mode = String(root.configEntry.accentMode ?? "album")
-        if (mode === "theme") return Appearance.colors.colPrimary ?? "#b7a1ff"
+        if (mode === "theme") return "#d0bcff"
         if (mode === "custom") return root.configEntry.customAccentColor ?? "#b7a1ff"
         return root.albumSecondaryColor
     }
