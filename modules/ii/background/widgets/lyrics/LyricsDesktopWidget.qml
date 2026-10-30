@@ -36,6 +36,7 @@ AbstractBackgroundWidget {
     property bool settingsOpen: false
     property int activeWordIndex: -1
     property real activeWordProgress: 0
+    property real lyricProgress: 0
     property real karaokeHop: 0
     property bool transitionMark: false
     property bool instrumentalNow: false
@@ -48,6 +49,9 @@ AbstractBackgroundWidget {
     readonly property bool glitchEnabled: configEntry.enableGlitch ?? true
     readonly property bool particlesEnabled: configEntry.enableParticles ?? true
     readonly property bool karaokeBallEnabled: configEntry.enableKaraokeBall ?? true
+    readonly property bool spectrumRingEnabled: configEntry.enableSpectrumRing ?? true
+    readonly property bool orbitNotesEnabled: configEntry.enableOrbitNotes ?? true
+    readonly property bool lyricProgressEnabled: configEntry.enableLyricProgress ?? true
     readonly property real motionIntensity: Math.max(0, Math.min(2, Number(configEntry.motionIntensity ?? 1.0)))
     readonly property real wheelIntensity: Math.max(0, Math.min(1.8, Number(configEntry.wheelIntensity ?? 1.0)))
     readonly property real glowIntensity: Math.max(0.2, Math.min(1.5, Number(configEntry.glowIntensity ?? 1.0)))
@@ -67,8 +71,8 @@ AbstractBackgroundWidget {
     readonly property string albumArtUrl: String(LyricsService.activePlayer?.trackArtUrl ?? "")
     // Canvas samples the current MPRIS artwork into a tiny palette. Text and outlines follow the album,
     // with the outline always darker than the foreground for contrast. Material colors are fallback only.
-    property color albumBaseColor: Appearance.colors.colPrimary ?? "#b7a1ff"
-    property color albumSecondaryColor: Appearance.colors.colSecondary ?? "#8bc8ff"
+    property color albumBaseColor: "#b7a1ff"
+    property color albumSecondaryColor: "#9d8ac7"
     readonly property color albumGlowColor: root.albumBaseColor
     readonly property color lyricColor: {
         if (String(root.configEntry.accentMode ?? "album") === "custom") return root.configEntry.customAccentColor ?? "#b7a1ff"
@@ -91,6 +95,9 @@ AbstractBackgroundWidget {
 
 
     function featureEnabled(key) {
+        if (key === "spectrum") return root.spectrumRingEnabled
+        if (key === "orbit") return root.orbitNotesEnabled
+        if (key === "progress") return root.lyricProgressEnabled
         if (key === "blur") return root.blurEnabled
         if (key === "bounce") return root.bounceEnabled
         if (key === "background") return root.backgroundEnabled
@@ -101,12 +108,16 @@ AbstractBackgroundWidget {
     }
 
     function toggleFeature(key) {
-        if (key === "blur") root.configEntry.enableBlur = !root.blurEnabled
+        if (key === "spectrum") root.configEntry.enableSpectrumRing = !root.spectrumRingEnabled
+        else if (key === "orbit") root.configEntry.enableOrbitNotes = !root.orbitNotesEnabled
+        else if (key === "progress") root.configEntry.enableLyricProgress = !root.lyricProgressEnabled
+        else if (key === "blur") root.configEntry.enableBlur = !root.blurEnabled
         else if (key === "bounce") root.configEntry.enableBounce = !root.bounceEnabled
         else if (key === "background") root.configEntry.enableBackground = !root.backgroundEnabled
         else if (key === "glitch") root.configEntry.enableGlitch = !root.glitchEnabled
         else if (key === "particles") root.configEntry.enableParticles = !root.particlesEnabled
         else if (key === "karaoke") root.configEntry.enableKaraokeBall = !root.karaokeBallEnabled
+        root.configEntryChanged()
     }
 
     function normalizeLyricGeometry(value) {
@@ -220,6 +231,8 @@ AbstractBackgroundWidget {
                 const line = lines[idx]
                 const start = Number(line.time) || 0
                 const end = idx + 1 < lines.length ? Number(lines[idx + 1].time) : start + 4
+                const progressEnd = Number(line.end) > start ? Number(line.end) : end
+                root.lyricProgress = Math.max(0, Math.min(1, (now - start) / Math.max(0.1, progressEnd - start)))
                 const words = line.words || []
                 if (words.length > 1) {
                     let activeWord = -1
@@ -256,7 +269,7 @@ AbstractBackgroundWidget {
                     const silenceUntilNext = nextStart - lineEnd
                     root.instrumentalCandidate = idx >= 0 && idx + 1 < lines.length && silenceUntilNext >= 2.8 && now >= lineEnd + 0.45 && now < nextStart - 0.25
                 }
-            } else { root.activeWordIndex = -1; root.activeWordProgress = 0; root.instrumentalCandidate = true }
+            } else { root.activeWordIndex = -1; root.activeWordProgress = 0; root.lyricProgress = 0; root.instrumentalCandidate = true }
         }
     }
 
@@ -275,8 +288,8 @@ AbstractBackgroundWidget {
 
     function resetAlbumPalette() {
         // Reset immediately on track/art change so the previous song's palette never sticks.
-        root.albumBaseColor = Appearance.colors.colPrimary ?? "#b7a1ff"
-        root.albumSecondaryColor = Appearance.colors.colSecondary ?? "#8bc8ff"
+        root.albumBaseColor = "#b7a1ff"
+        root.albumSecondaryColor = "#9d8ac7"
         paletteSampler.requestPaint()
     }
     onAlbumArtUrlChanged: {
@@ -352,6 +365,8 @@ AbstractBackgroundWidget {
                             else h = (r - g) / delta + 4
                             h = (h / 6 + 1) % 1
                         }
+                        // Exclude saturated yellow/gold (roughly 36–68°): it clashes with the lavender studio palette.
+                        if (h > 0.10 && h < 0.19) continue
                         const bucket = bins[Math.min(11, Math.floor(h * 12))]
                         const weight = sat * (0.45 + lum * 0.55)
                         bucket.score += weight
@@ -555,6 +570,86 @@ AbstractBackgroundWidget {
                 color: index % 4 === 0 ? root.lyricColor : root.albumBaseColor
                 font.pixelSize: index % 5 === 0 ? 15 : (index % 3 === 0 ? 11 : 15)
                 opacity: 0.035 + (0.085 * (0.5 + 0.5 * Math.sin(phase + index * 0.21)))
+            }
+        }
+
+        // New effect 1: a circular, audio-reactive spectrum surrounding (not covering) the lyric stack.
+        Item {
+            id: spectrumHalo
+            anchors.fill: parent
+            visible: root.spectrumRingEnabled && LyricsService.playing && !root.instrumentalNow
+            opacity: 0.72
+            Repeater {
+                model: 40
+                delegate: Rectangle {
+                    required property int index
+                    readonly property real angle: index * (360 / 40)
+                    readonly property real wave: 0.5 + 0.5 * Math.sin(root.shimmer * 2.1 + index * 0.73)
+                    width: 3
+                    height: 5 + root.audioEnergy * 24 + wave * (3 + root.audioEnergy * 12)
+                    radius: 2
+                    x: spectrumHalo.width * 0.5 + Math.cos(angle * Math.PI / 180) * spectrumHalo.width * 0.315 - width * 0.5
+                    y: spectrumHalo.height * 0.5 + Math.sin(angle * Math.PI / 180) * spectrumHalo.height * 0.245 - height * 0.5
+                    rotation: angle + 90
+                    transformOrigin: Item.Center
+                    color: index % 5 === 0 ? root.accentColor : root.albumBaseColor
+                    opacity: 0.20 + root.audioEnergy * 0.34 + wave * 0.10
+                }
+            }
+        }
+
+        // New effect 2: small music glyphs orbit the focused lyrics with slow parallax.
+        Item {
+            id: orbitLayer
+            anchors.fill: parent
+            visible: root.orbitNotesEnabled && LyricsService.playing && !root.instrumentalNow
+            Repeater {
+                model: 8
+                delegate: Text {
+                    required property int index
+                    readonly property real phase: root.shimmer * (0.22 + (index % 3) * 0.035) + index * Math.PI / 4
+                    text: ["♪", "✧", "♫", "·", "♬", "˚", "✦", "♪"][index]
+                    x: orbitLayer.width * 0.5 + Math.cos(phase) * orbitLayer.width * (0.34 + (index % 2) * 0.035) - width / 2
+                    y: orbitLayer.height * 0.5 + Math.sin(phase * 0.82) * orbitLayer.height * 0.31 - height / 2
+                    color: index % 3 === 0 ? root.accentColor : root.albumBaseColor
+                    font.pixelSize: 12 + (index % 3) * 5
+                    opacity: 0.18 + 0.12 * (0.5 + 0.5 * Math.sin(phase * 1.4))
+                    rotation: Math.sin(phase) * 12
+                }
+            }
+        }
+
+        // New effect 3: a fine progress rail that fills as the active lyric line is sung.
+        Item {
+            id: lyricProgressRail
+            anchors.fill: parent
+            visible: root.lyricProgressEnabled && LyricsService.playing && !root.instrumentalNow && !root.songDone
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: parent.height * 0.685
+                width: parent.width * 0.34
+                height: 2
+                radius: 2
+                color: root.albumBaseColor
+                opacity: 0.18
+            }
+            Rectangle {
+                anchors.left: parent.left
+                anchors.leftMargin: (parent.width - width) / 2
+                y: parent.height * 0.685
+                width: parent.width * 0.34 * root.lyricProgress
+                height: 2
+                radius: 2
+                color: root.accentColor
+                opacity: 0.88
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true
+                    shadowColor: root.accentColor
+                    shadowBlur: 0.35
+                    shadowOpacity: 0.55
+                }
+                Behavior on width { NumberAnimation { duration: 90; easing.type: Easing.OutCubic } }
             }
         }
 
@@ -892,6 +987,9 @@ AbstractBackgroundWidget {
                 }
                 Repeater {
                     model: [
+                        { key: "spectrum", on: "equalizer", off: "equalizer", tooltip: "Espectro circular reactivo al audio." },
+                        { key: "orbit", on: "motion_photos_on", off: "motion_photos_off", tooltip: "Notas flotantes en órbita." },
+                        { key: "progress", on: "linear_scale", off: "linear_scale", tooltip: "Progreso de la línea sincronizado." },
                         { key: "blur", on: "blur_on", off: "blur_off", tooltip: "Desenfoque: suaviza el brillo y los bordes." },
                         { key: "bounce", on: "motion_photos_on", off: "motion_photos_off", tooltip: "Rebote: expansión sutil del texto con la música." },
                         { key: "background", on: "cloud", off: "cloud_off", tooltip: "Nube procedural de fondo." },
