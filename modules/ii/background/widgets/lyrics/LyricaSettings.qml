@@ -24,6 +24,7 @@ Rectangle {
     Material.primary: studioAccent
     Material.background: surfaceBase
     Material.foreground: onSurface
+    Material.roundedScale: Material.LargeScale
 
     function setValue(key, value) {
         root.configEntry[key] = value
@@ -44,6 +45,9 @@ Rectangle {
             setValue("enableGlitch", false)
             setValue("enableParticles", true)
             setValue("enableKaraokeBall", true)
+            setValue("enableSpectrumRing", false)
+            setValue("enableOrbitNotes", true)
+            setValue("enableLyricProgress", true)
         } else if (name === "aurora") {
             setValue("accentMode", "album")
             setValue("motionIntensity", 1.35)
@@ -57,6 +61,9 @@ Rectangle {
             setValue("enableGlitch", true)
             setValue("enableParticles", true)
             setValue("enableKaraokeBall", true)
+            setValue("enableSpectrumRing", true)
+            setValue("enableOrbitNotes", true)
+            setValue("enableLyricProgress", true)
         } else if (name === "minimal") {
             setValue("accentMode", "theme")
             setValue("motionIntensity", 0.25)
@@ -70,6 +77,9 @@ Rectangle {
             setValue("enableGlitch", false)
             setValue("enableParticles", false)
             setValue("enableKaraokeBall", true)
+            setValue("enableSpectrumRing", false)
+            setValue("enableOrbitNotes", false)
+            setValue("enableLyricProgress", true)
         } else if (name === "karaoke") {
             setValue("accentMode", "album")
             setValue("motionIntensity", 1.0)
@@ -83,6 +93,9 @@ Rectangle {
             setValue("enableGlitch", false)
             setValue("enableParticles", false)
             setValue("enableKaraokeBall", true)
+            setValue("enableSpectrumRing", true)
+            setValue("enableOrbitNotes", true)
+            setValue("enableLyricProgress", true)
         }
     }
 
@@ -102,6 +115,9 @@ Rectangle {
         setValue("enableKaraokeBall", true)
         setValue("showSource", true)
         setValue("prefetchEnabled", true)
+        setValue("enableSpectrumRing", true)
+        setValue("enableOrbitNotes", true)
+        setValue("enableLyricProgress", true)
     }
 
     visible: open
@@ -125,8 +141,8 @@ Rectangle {
                 width: 42
                 height: 42
                 radius: 22
-                color: "#4a4458"
-                border.color: "#625b70"
+                color: "#383342"
+                border.color: "#625a70"
                 Text {
                     anchors.centerIn: parent
                     text: "✦"
@@ -138,7 +154,7 @@ Rectangle {
                 spacing: 1
                 Label {
                     text: "Lyrica Studio"
-                    color: "white"
+                    color: root.onSurface
                     font.pixelSize: 20
                     font.bold: true
                 }
@@ -217,7 +233,7 @@ Rectangle {
                                     Layout.preferredWidth: 34
                                     Layout.preferredHeight: 34
                                     radius: 12
-                                    color: "#4a4458"
+                                    color: "#383342"
                                     Label {
                                         anchors.centerIn: parent
                                         text: ["✧", "✦", "○", "♫"][index]
@@ -275,8 +291,9 @@ Rectangle {
                             font.bold: true
                             font.letterSpacing: 1.0
                         }
-                        Label { text: "Paleta de acento"; color: "white"; font.bold: true; font.pixelSize: 12 }
+                        Label { text: "Paleta de acento"; color: root.onSurface; font.bold: true; font.pixelSize: 12 }
                         ComboBox {
+                            Material.accent: root.studioAccent
                             Layout.fillWidth: true
                             model: ["Carátula dinámica", "Tema del sistema", "Color personalizado"]
                             currentIndex: ({"album": 0, "theme": 1, "custom": 2})[String(root.configEntry.accentMode ?? "album")] ?? 0
@@ -286,16 +303,18 @@ Rectangle {
                             Layout.fillWidth: true
                             Label { text: "Color personalizado"; color: root.onSurfaceVariant; Layout.fillWidth: true; font.pixelSize: 11 }
                             TextField {
+                                Material.accent: root.studioAccent
                                 Layout.preferredWidth: 96
                                 text: String(root.configEntry.customAccentColor ?? "#b7a1ff")
                                 placeholderText: "#b7a1ff"
                                 onEditingFinished: if (/^#[0-9a-fA-F]{6}$/.test(text)) root.setValue("customAccentColor", text)
                             }
                         }
-                        Label { text: "Intensidad de la nube"; color: "white"; font.pixelSize: 11 }
+                        Label { text: "Intensidad de la nube"; color: root.onSurface; font.pixelSize: 11 }
                         RowLayout {
                             Layout.fillWidth: true
                             Slider {
+                                Material.accent: root.studioAccent
                                 Layout.fillWidth: true
                                 from: 0
                                 to: 1
@@ -310,10 +329,11 @@ Rectangle {
                                 Layout.preferredWidth: 34
                             }
                         }
-                        Label { text: "Resplandor de las letras"; color: "white"; font.pixelSize: 11 }
+                        Label { text: "Resplandor de las letras"; color: root.onSurface; font.pixelSize: 11 }
                         RowLayout {
                             Layout.fillWidth: true
                             Slider {
+                                Material.accent: root.studioAccent
                                 Layout.fillWidth: true
                                 from: 0.2
                                 to: 1.5
@@ -349,8 +369,9 @@ Rectangle {
                             font.bold: true
                             font.letterSpacing: 1.2
                         }
-                        Label { text: "Reacción a la música"; color: "white"; font.pixelSize: 11 }
+                        Label { text: "Reacción a la música"; color: root.onSurface; font.pixelSize: 11 }
                         Slider {
+                                Material.accent: root.studioAccent
                             Layout.fillWidth: true
                             from: 0
                             to: 2
@@ -358,8 +379,9 @@ Rectangle {
                             value: Number(root.configEntry.motionIntensity ?? 1.0)
                             onMoved: root.setValue("motionIntensity", value)
                         }
-                        Label { text: "Inclinación de la rueda de letras"; color: "white"; font.pixelSize: 11 }
+                        Label { text: "Inclinación de la rueda de letras"; color: root.onSurface; font.pixelSize: 11 }
                         Slider {
+                                Material.accent: root.studioAccent
                             Layout.fillWidth: true
                             from: 0
                             to: 1.8
@@ -367,16 +389,18 @@ Rectangle {
                             value: Number(root.configEntry.wheelIntensity ?? 1.0)
                             onMoved: root.setValue("wheelIntensity", value)
                         }
-                        Switch { Layout.fillWidth: true; text: "Rebote sutil al ritmo"; checked: root.configEntry.enableBounce ?? true; onToggled: root.setValue("enableBounce", checked) }
-                        Switch { Layout.fillWidth: true; text: "Desenfoque en los silencios"; checked: root.configEntry.enableBlur ?? true; onToggled: root.setValue("enableBlur", checked) }
+                        Switch {
+                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Rebote sutil al ritmo"; checked: root.configEntry.enableBounce ?? true; onToggled: root.setValue("enableBounce", checked) }
+                        Switch {
+                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Desenfoque en los silencios"; checked: root.configEntry.enableBlur ?? true; onToggled: root.setValue("enableBlur", checked) }
                     }
                 }
 
                 Rectangle {
                     Layout.fillWidth: true
                     radius: 15
-                    color: "#ffffff08"
-                    border.color: "#ffffff12"
+                    color: root.surfaceContainer
+                    border.color: "#49454f"
                     implicitHeight: effectsColumn.implicitHeight + 20
                     ColumnLayout {
                         id: effectsColumn
@@ -390,17 +414,69 @@ Rectangle {
                             font.bold: true
                             font.letterSpacing: 1.2
                         }
-                        Switch { Layout.fillWidth: true; text: "Nube pastel dinámica"; checked: root.configEntry.enableBackground ?? true; onToggled: root.setValue("enableBackground", checked) }
-                        Switch { Layout.fillWidth: true; text: "Partículas y destellos"; checked: root.configEntry.enableParticles ?? true; onToggled: root.setValue("enableParticles", checked) }
-                        Switch { Layout.fillWidth: true; text: "Glitch cromático discreto"; checked: root.configEntry.enableGlitch ?? true; onToggled: root.setValue("enableGlitch", checked) }
+                        Switch {
+                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Nube pastel dinámica"; checked: root.configEntry.enableBackground ?? true; onToggled: root.setValue("enableBackground", checked) }
+                        Switch {
+                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Partículas y destellos"; checked: root.configEntry.enableParticles ?? true; onToggled: root.setValue("enableParticles", checked) }
+                        Switch {
+                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Glitch cromático discreto"; checked: root.configEntry.enableGlitch ?? true; onToggled: root.setValue("enableGlitch", checked) }
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    radius: 20
+                    color: root.surfaceContainer
+                    border.color: "#49454f"
+                    implicitHeight: newEffectsColumn.implicitHeight + 20
+                    ColumnLayout {
+                        id: newEffectsColumn
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 8
+                        Label {
+                            text: "NUEVOS EFECTOS VISUALES"
+                            color: root.studioAccent
+                            font.pixelSize: 10
+                            font.bold: true
+                            font.letterSpacing: 1.2
+                        }
+                        Switch {
+                            Layout.fillWidth: true
+                            Material.accent: root.studioAccent
+                            text: "Espectro circular reactivo"
+                            checked: root.configEntry.enableSpectrumRing ?? true
+                            onToggled: root.setValue("enableSpectrumRing", checked)
+                        }
+                        Switch {
+                            Layout.fillWidth: true
+                            Material.accent: root.studioAccent
+                            text: "Notas flotantes en órbita"
+                            checked: root.configEntry.enableOrbitNotes ?? true
+                            onToggled: root.setValue("enableOrbitNotes", checked)
+                        }
+                        Switch {
+                            Layout.fillWidth: true
+                            Material.accent: root.studioAccent
+                            text: "Progreso luminoso de la línea"
+                            checked: root.configEntry.enableLyricProgress ?? true
+                            onToggled: root.setValue("enableLyricProgress", checked)
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                            text: "Tres capas nuevas: barras de espectro alrededor del texto, símbolos que orbitan al ritmo y una línea que avanza con la letra."
+                            color: root.onSurfaceVariant
+                            font.pixelSize: 10
+                        }
                     }
                 }
 
                 Rectangle {
                     Layout.fillWidth: true
                     radius: 15
-                    color: "#ffffff08"
-                    border.color: "#ffffff12"
+                    color: root.surfaceContainer
+                    border.color: "#49454f"
                     implicitHeight: karaokeColumn.implicitHeight + 20
                     ColumnLayout {
                         id: karaokeColumn
@@ -414,9 +490,11 @@ Rectangle {
                             font.bold: true
                             font.letterSpacing: 1.2
                         }
-                        Switch { Layout.fillWidth: true; text: "Bola sincronizada por palabra"; checked: root.configEntry.enableKaraokeBall ?? true; onToggled: root.setValue("enableKaraokeBall", checked) }
-                        Label { text: "Tamaño de la bola"; color: "white"; font.pixelSize: 11 }
+                        Switch {
+                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Bola sincronizada por palabra"; checked: root.configEntry.enableKaraokeBall ?? true; onToggled: root.setValue("enableKaraokeBall", checked) }
+                        Label { text: "Tamaño de la bola"; color: root.onSurface; font.pixelSize: 11 }
                         Slider {
+                                Material.accent: root.studioAccent
                             Layout.fillWidth: true
                             from: 0.65
                             to: 1.7
@@ -424,8 +502,10 @@ Rectangle {
                             value: Number(root.configEntry.karaokeBallSize ?? 1.0)
                             onMoved: root.setValue("karaokeBallSize", value)
                         }
-                        Switch { Layout.fillWidth: true; text: "Mostrar proveedor de letras"; checked: root.configEntry.showSource ?? true; onToggled: root.setValue("showSource", checked) }
-                        Switch { Layout.fillWidth: true; text: "Precargar próximas letras cuando sea posible"; checked: root.configEntry.prefetchEnabled ?? true; onToggled: root.setValue("prefetchEnabled", checked) }
+                        Switch {
+                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Mostrar proveedor de letras"; checked: root.configEntry.showSource ?? true; onToggled: root.setValue("showSource", checked) }
+                        Switch {
+                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Precargar próximas letras cuando sea posible"; checked: root.configEntry.prefetchEnabled ?? true; onToggled: root.setValue("prefetchEnabled", checked) }
                         Label {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
@@ -439,6 +519,7 @@ Rectangle {
                 RowLayout {
                     Layout.fillWidth: true
                     Button {
+                        Material.accent: root.studioAccent
                         text: "Restaurar valores"
                         onClicked: root.restoreDefaults()
                     }
