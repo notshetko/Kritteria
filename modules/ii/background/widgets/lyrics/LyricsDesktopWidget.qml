@@ -34,7 +34,6 @@ AbstractBackgroundWidget {
     property real lyricBounce: 0
     property bool songDone: false
     property bool settingsOpen: false
-    property int configRevision: 0
     property int activeWordIndex: -1
     property real activeWordProgress: 0
     property real karaokeHop: 0
@@ -1012,7 +1011,7 @@ AbstractBackgroundWidget {
         height: Math.max(180, Math.min(root.height - 58, 440))
         z: 100
         configEntry: root.configEntry
-        notifyConfigChanged: () => { root.configRevision++ }
+        notifyConfigChanged: () => { root.configEntryChanged() }
         open: root.settingsOpen && !Config.options.background.widgetsLocked
         accent: root.accentColor
         surfaceColor: Appearance.colors.colSurfaceContainer ?? Appearance.colors.colLayer1 ?? "#281c38"
