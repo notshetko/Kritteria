@@ -48,6 +48,10 @@ AbstractBackgroundWidget {
     readonly property bool glitchEnabled: configEntry.enableGlitch ?? true
     readonly property bool particlesEnabled: configEntry.enableParticles ?? true
     readonly property bool karaokeBallEnabled: configEntry.enableKaraokeBall ?? true
+    readonly property real motionIntensity: Math.max(0, Math.min(2, Number(configEntry.motionIntensity ?? 1.0)))
+    readonly property real wheelIntensity: Math.max(0, Math.min(1.8, Number(configEntry.wheelIntensity ?? 1.0)))
+    readonly property real glowIntensity: Math.max(0.2, Math.min(1.5, Number(configEntry.glowIntensity ?? 1.0)))
+    readonly property real karaokeBallSize: Math.max(0.65, Math.min(1.7, Number(configEntry.karaokeBallSize ?? 1.0)))
     readonly property real rowHeight: Math.max(44, Math.min(90, (root.height - 30) / 7))
     onActiveWordIndexChanged: {
         if (root.karaokeBallEnabled && root.activeWordIndex >= 0)
@@ -203,7 +207,7 @@ AbstractBackgroundWidget {
             root.audioEnergy = Math.max(0.04, root.audioEnergy * 0.9925)
             root.beatPulse = root.audioEnergy
             // Subtle, music-reactive motion: lyrics lead the cloud, but never jump.
-            root.lyricBounce = root.bounceEnabled ? Math.max(0, Math.min(1, (root.audioEnergy - 0.22) * 0.85)) : 0
+            root.lyricBounce = root.bounceEnabled ? Math.max(0, Math.min(1, (root.audioEnergy - 0.22) * 0.85 * root.motionIntensity)) : 0
             const idx = LyricsService.activeIndex
             const lines = LyricsService.lyricsLines
             const now = LyricsService.currentPosition()
@@ -582,7 +586,7 @@ AbstractBackgroundWidget {
                     readonly property int dist: Math.abs(index - root.centerSlot)
                     readonly property bool current: dist === 0
                     readonly property real fade: root.instrumentalNow ? (current ? 0.12 : dist === 1 ? 0.08 : 0.045) : current ? 1 : dist === 1 ? 0.52 : dist === 2 ? 0.25 : 0.105
-                    readonly property real wheelTilt: current ? 0 : (index < root.centerSlot ? -1 : 1) * Math.min(8, dist * 2.15)
+                    readonly property real wheelTilt: current ? 0 : (index < root.centerSlot ? -1 : 1) * Math.min(8, dist * 2.15 * root.wheelIntensity)
                     readonly property string lyricText: LyricsService.slots[index] || ""
                     readonly property string romanizedText: LyricsService.romajiSlots[index] || ""
                     // Han without kana is treated as Chinese for display; romanize() uses pinyin for it.
@@ -642,8 +646,8 @@ AbstractBackgroundWidget {
                     Rectangle {
                         z: 80
                         visible: root.karaokeBallEnabled && row.current && !row.hanOnlyText && root.activeLineWordSynced && row.wordGeometryValid && root.activeWordIndex >= 0 && !root.instrumentalNow
-                        width: 18
-                        height: 18
+                        width: 18 * root.karaokeBallSize
+                        height: 18 * root.karaokeBallSize
                         radius: width / 2
                         x: row.measuredWordX - width / 2
                         y: row.measuredWordY - height / 2
@@ -655,8 +659,8 @@ AbstractBackgroundWidget {
                         id: phraseBall
                         z: 81
                         visible: root.karaokeBallEnabled && row.current && !row.hanOnlyText && root.activeLineWordSynced && row.wordGeometryValid && root.activeWordIndex >= 0 && !root.instrumentalNow
-                        width: 8
-                        height: 8
+                        width: 8 * root.karaokeBallSize
+                        height: 8 * root.karaokeBallSize
                         radius: width / 2
                         x: row.measuredWordX - width / 2
                         y: row.measuredWordY - height / 2
@@ -731,7 +735,7 @@ AbstractBackgroundWidget {
                                     shadowBlur: 0.306
                                     shadowHorizontalOffset: 0
                                     shadowVerticalOffset: 3 + root.audioEnergy * 0.15
-                                    shadowOpacity: 0.94
+                                    shadowOpacity: Math.max(0.25, Math.min(1, 0.94 * root.glowIntensity))
                                 }
                                 Behavior on y { NumberAnimation { duration: 95; easing.type: Easing.OutCubic } }
                                 Behavior on scale { NumberAnimation { duration: 95; easing.type: Easing.OutCubic } }
