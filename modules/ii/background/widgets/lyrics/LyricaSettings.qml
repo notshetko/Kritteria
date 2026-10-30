@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Material
 import QtQuick.Layouts
 
 Rectangle {
@@ -9,8 +10,19 @@ Rectangle {
     required property var configEntry
     property bool open: false
     property color accent: "#b7a1ff"
-    readonly property color studioAccent: "#b9a9d6"
-    property color surfaceColor: "#281c38"
+    readonly property color studioAccent: "#d0bcff"
+    readonly property color surfaceBase: "#141218"
+    readonly property color surfaceContainer: "#211f26"
+    readonly property color surfaceHigh: "#2b2930"
+    readonly property color onSurface: "#e6e0e9"
+    readonly property color onSurfaceVariant: "#cac4d0"
+    property color surfaceColor: "#211f26"
+
+    Material.theme: Material.Dark
+    Material.accent: studioAccent
+    Material.primary: studioAccent
+    Material.background: surfaceBase
+    Material.foreground: onSurface
 
     function setValue(key, value) {
         root.configEntry[key] = value
@@ -92,27 +104,27 @@ Rectangle {
 
     visible: open
     opacity: open ? 1 : 0
-    radius: 20
-    color: Qt.darker(surfaceColor, 1.035)
+    radius: 28
+    color: surfaceBase
     border.width: 1
-    border.color: Qt.rgba(accent.r, accent.g, accent.b, 0.62)
+    border.color: "#49454f"
     clip: true
     Behavior on opacity { NumberAnimation { duration: 190; easing.type: Easing.OutCubic } }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 12
-        spacing: 8
+        anchors.margins: 14
+        spacing: 12
 
         RowLayout {
             Layout.fillWidth: true
             spacing: 10
             Rectangle {
-                width: 38
-                height: 38
-                radius: 13
-                color: Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.16)
-                border.color: Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.28)
+                width: 42
+                height: 42
+                radius: 22
+                color: "#4a4458"
+                border.color: "#625b70"
                 Text {
                     anchors.centerIn: parent
                     text: "✦"
@@ -125,18 +137,18 @@ Rectangle {
                 Label {
                     text: "Lyrica Studio"
                     color: "white"
-                    font.pixelSize: 19
+                    font.pixelSize: 20
                     font.bold: true
                 }
                 Label {
-                    text: "Tu escenario, a tu manera"
-                    color: "#bcb5ca"
+                    text: "Personaliza tu experiencia"
+                    color: root.onSurfaceVariant
                     font.pixelSize: 11
                 }
             }
             Item { Layout.fillWidth: true }
             Label {
-                text: "STUDIO"
+                text: "MATERIAL YOU"
                 color: root.studioAccent
                 font.pixelSize: 9
                 font.bold: true
@@ -147,7 +159,7 @@ Rectangle {
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.25)
+            color: "#49454f"
         }
 
         ScrollView {
@@ -158,12 +170,12 @@ Rectangle {
 
             ColumnLayout {
                 width: Math.max(0, parent.width)
-                spacing: 9
+                spacing: 12
 
                 Label {
-                    text: "ESCENAS"
-                    color: root.studioAccent
-                    font.pixelSize: 10
+                    text: "PRESETS"
+                    color: root.onSurfaceVariant
+                    font.pixelSize: 11
                     font.bold: true
                     font.letterSpacing: 1.5
                 }
@@ -183,27 +195,27 @@ Rectangle {
                             id: presetCard
                             required property var modelData
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 58
-                            radius: 13
+                            Layout.preferredHeight: 66
+                            radius: 18
                             color: presetMouse.pressed
-                                ? Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.22)
+                                ? "#514765"
                                 : presetMouse.containsMouse
-                                    ? Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.14)
-                                    : "#ffffff08"
+                                    ? "#35313d"
+                                    : root.surfaceContainer
                             border.width: 1
                             border.color: presetMouse.containsMouse
-                                ? Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.52)
-                                : "#ffffff20"
+                                ? root.studioAccent
+                                : "#49454f"
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.leftMargin: 11
                                 anchors.rightMargin: 8
                                 spacing: 9
                                 Rectangle {
-                                    Layout.preferredWidth: 29
-                                    Layout.preferredHeight: 29
-                                    radius: 10
-                                    color: Qt.rgba(root.studioAccent.r, root.studioAccent.g, root.studioAccent.b, 0.16)
+                                    Layout.preferredWidth: 34
+                                    Layout.preferredHeight: 34
+                                    radius: 12
+                                    color: "#4a4458"
                                     Label {
                                         anchors.centerIn: parent
                                         text: ["✧", "✦", "○", "♫"][index]
@@ -216,13 +228,13 @@ Rectangle {
                                     spacing: 1
                                     Label {
                                         text: presetCard.modelData.title
-                                        color: "#f2eef7"
+                                        color: root.onSurface
                                         font.pixelSize: 11
                                         font.bold: true
                                     }
                                     Label {
                                         text: presetCard.modelData.sub
-                                        color: "#aaa2b5"
+                                        color: root.onSurfaceVariant
                                         font.pixelSize: 9
                                     }
                                 }
@@ -245,9 +257,9 @@ Rectangle {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    radius: 15
-                    color: "#ffffff06"
-                    border.color: "#ffffff16"
+                    radius: 22
+                    color: root.surfaceContainer
+                    border.color: "#49454f"
                     implicitHeight: paletteColumn.implicitHeight + 20
                     ColumnLayout {
                         id: paletteColumn
@@ -259,7 +271,7 @@ Rectangle {
                             color: root.studioAccent
                             font.pixelSize: 10
                             font.bold: true
-                            font.letterSpacing: 1.2
+                            font.letterSpacing: 1.0
                         }
                         Label { text: "Paleta de acento"; color: "white"; font.bold: true; font.pixelSize: 12 }
                         ComboBox {
@@ -270,7 +282,7 @@ Rectangle {
                         }
                         RowLayout {
                             Layout.fillWidth: true
-                            Label { text: "Color personalizado"; color: "#ddd6e8"; Layout.fillWidth: true; font.pixelSize: 11 }
+                            Label { text: "Color personalizado"; color: root.onSurfaceVariant; Layout.fillWidth: true; font.pixelSize: 11 }
                             TextField {
                                 Layout.preferredWidth: 96
                                 text: String(root.configEntry.customAccentColor ?? "#b7a1ff")
@@ -319,9 +331,9 @@ Rectangle {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    radius: 15
-                    color: "#ffffff08"
-                    border.color: "#ffffff12"
+                    radius: 22
+                    color: root.surfaceContainer
+                    border.color: "#49454f"
                     implicitHeight: motionColumn.implicitHeight + 20
                     ColumnLayout {
                         id: motionColumn
@@ -416,7 +428,7 @@ Rectangle {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
                             text: "La precarga depende de la cola que exponga el reproductor y del proveedor disponible. Las letras encontradas se conservan en caché."
-                            color: "#bcb5ca"
+                            color: root.onSurfaceVariant
                             font.pixelSize: 10
                         }
                     }
