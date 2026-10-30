@@ -8,6 +8,7 @@ import QtQuick.Layouts
 Rectangle {
     id: root
     required property var configEntry
+    property var notifyConfigChanged: function() {}
     property bool open: false
     property color accent: "#b7a1ff"
     readonly property color studioAccent: "#d0bcff"
@@ -26,6 +27,7 @@ Rectangle {
 
     function setValue(key, value) {
         root.configEntry[key] = value
+        root.notifyConfigChanged()
     }
 
     function applyPreset(name) {
