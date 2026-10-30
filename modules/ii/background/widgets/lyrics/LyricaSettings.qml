@@ -24,7 +24,6 @@ Rectangle {
     Material.primary: studioAccent
     Material.background: surfaceBase
     Material.foreground: onSurface
-    Material.roundedScale: Material.LargeScale
 
     function setValue(key, value) {
         root.configEntry[key] = value
