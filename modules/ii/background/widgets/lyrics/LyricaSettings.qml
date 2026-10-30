@@ -389,9 +389,11 @@ Rectangle {
                             onMoved: root.setValue("wheelIntensity", value)
                         }
                         Switch {
-                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Rebote sutil al ritmo"; checked: root.configEntry.enableBounce ?? true; onToggled: root.setValue("enableBounce", checked) }
+                            Material.accent: root.studioAccent
+                            Layout.fillWidth: true; text: "Rebote sutil al ritmo"; checked: root.configEntry.enableBounce ?? true; onToggled: root.setValue("enableBounce", checked) }
                         Switch {
-                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Desenfoque en los silencios"; checked: root.configEntry.enableBlur ?? true; onToggled: root.setValue("enableBlur", checked) }
+                            Material.accent: root.studioAccent
+                            Layout.fillWidth: true; text: "Desenfoque en los silencios"; checked: root.configEntry.enableBlur ?? true; onToggled: root.setValue("enableBlur", checked) }
                     }
                 }
 
@@ -414,11 +416,14 @@ Rectangle {
                             font.letterSpacing: 1.2
                         }
                         Switch {
-                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Nube pastel dinámica"; checked: root.configEntry.enableBackground ?? true; onToggled: root.setValue("enableBackground", checked) }
+                            Material.accent: root.studioAccent
+                            Layout.fillWidth: true; text: "Nube pastel dinámica"; checked: root.configEntry.enableBackground ?? true; onToggled: root.setValue("enableBackground", checked) }
                         Switch {
-                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Partículas y destellos"; checked: root.configEntry.enableParticles ?? true; onToggled: root.setValue("enableParticles", checked) }
+                            Material.accent: root.studioAccent
+                            Layout.fillWidth: true; text: "Partículas y destellos"; checked: root.configEntry.enableParticles ?? true; onToggled: root.setValue("enableParticles", checked) }
                         Switch {
-                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Glitch cromático discreto"; checked: root.configEntry.enableGlitch ?? true; onToggled: root.setValue("enableGlitch", checked) }
+                            Material.accent: root.studioAccent
+                            Layout.fillWidth: true; text: "Glitch cromático discreto"; checked: root.configEntry.enableGlitch ?? true; onToggled: root.setValue("enableGlitch", checked) }
                     }
                 }
 
@@ -490,7 +495,8 @@ Rectangle {
                             font.letterSpacing: 1.2
                         }
                         Switch {
-                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Bola sincronizada por palabra"; checked: root.configEntry.enableKaraokeBall ?? true; onToggled: root.setValue("enableKaraokeBall", checked) }
+                            Material.accent: root.studioAccent
+                            Layout.fillWidth: true; text: "Bola sincronizada por palabra"; checked: root.configEntry.enableKaraokeBall ?? true; onToggled: root.setValue("enableKaraokeBall", checked) }
                         Label { text: "Tamaño de la bola"; color: root.onSurface; font.pixelSize: 11 }
                         Slider {
                                 Material.accent: root.studioAccent
@@ -502,9 +508,11 @@ Rectangle {
                             onMoved: root.setValue("karaokeBallSize", value)
                         }
                         Switch {
-                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Mostrar proveedor de letras"; checked: root.configEntry.showSource ?? true; onToggled: root.setValue("showSource", checked) }
+                            Material.accent: root.studioAccent
+                            Layout.fillWidth: true; text: "Mostrar proveedor de letras"; checked: root.configEntry.showSource ?? true; onToggled: root.setValue("showSource", checked) }
                         Switch {
-                            Material.accent: root.studioAccent Layout.fillWidth: true; text: "Precargar próximas letras cuando sea posible"; checked: root.configEntry.prefetchEnabled ?? true; onToggled: root.setValue("prefetchEnabled", checked) }
+                            Material.accent: root.studioAccent
+                            Layout.fillWidth: true; text: "Precargar próximas letras cuando sea posible"; checked: root.configEntry.prefetchEnabled ?? true; onToggled: root.setValue("prefetchEnabled", checked) }
                         Label {
                             Layout.fillWidth: true
                             wrapMode: Text.Wrap
