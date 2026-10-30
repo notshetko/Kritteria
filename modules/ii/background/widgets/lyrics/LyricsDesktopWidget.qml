@@ -1007,8 +1007,8 @@ AbstractBackgroundWidget {
         anchors.right: parent.right
         anchors.topMargin: 46
         anchors.rightMargin: 20
-        width: Math.min(420, Math.max(320, root.width * 0.38))
-        height: Math.min(root.height - 58, 510)
+        width: Math.max(220, Math.min(390, root.width - 28))
+        height: Math.max(180, Math.min(root.height - 58, 440))
         z: 100
         configEntry: root.configEntry
         open: root.settingsOpen && !Config.options.background.widgetsLocked
