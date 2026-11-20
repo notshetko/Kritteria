@@ -13,8 +13,15 @@ Item {
     id: root
 
     readonly property bool vertical: Config.options.bar.vertical
-    readonly property int slotSize: 28
-    readonly property int slotGap: 2
+    readonly property real barThickness: vertical
+        ? Appearance.sizes.verticalBarWidth
+        : Appearance.sizes.barHeight
+    readonly property real workspaceButtonWidth: (Config.options.bar.cornerStyle === 3
+        || Config.options.bar.cornerStyle === 4) ? 30 : 26
+    readonly property real activeWorkspaceMargin: 2
+    readonly property real activeWorkspaceSize: workspaceButtonWidth - activeWorkspaceMargin * 2
+    readonly property real workspaceIconSize: workspaceButtonWidth * 0.50
+    readonly property int slotCount: specialNames.length
 
     WorkspaceModel {
         id: wsModel
@@ -34,61 +41,84 @@ Item {
         return names;
     }
 
-    readonly property int slotsLength: specialNames.length * slotSize
-        + Math.max(0, specialNames.length - 1) * slotGap + 8
-
-    implicitWidth: vertical ? slotSize + 8 : slotsLength
-    implicitHeight: vertical ? slotsLength : slotSize + 8
-
-    StyledRectangle {
-        anchors.fill: parent
-        radius: height / 2
-        color: ColorUtils.transparentize(Appearance.m3colors.m3secondaryContainer, 0.4)
-    }
+    implicitWidth: vertical ? barThickness : slotCount * workspaceButtonWidth
+    implicitHeight: vertical ? slotCount * workspaceButtonWidth : barThickness
 
     Repeater {
         model: root.specialNames
 
         delegate: Item {
             id: specialSlot
+
             required property int index
             required property string modelData
 
             readonly property bool active: wsModel.specialWorkspaceName === modelData
             readonly property bool exists: (Hyprland.workspaces?.values ?? [])
                 .some(workspace => workspace?.name === "special:" + modelData)
+            readonly property string iconName: {
+                const name = modelData.toLowerCase();
+                if (name === "chat" || name.includes("discord")) return "forum";
+                if (name === "musica" || name.includes("music") || name.includes("spotify")) return "music_note";
+                return "widgets";
+            }
 
-            x: root.vertical ? 4 : 4 + index * (root.slotSize + root.slotGap)
-            y: root.vertical ? 4 + index * (root.slotSize + root.slotGap) : 4
-            width: root.slotSize
-            height: root.slotSize
+            x: root.vertical ? 0 : index * root.workspaceButtonWidth
+            y: root.vertical ? index * root.workspaceButtonWidth : 0
+            width: root.vertical ? root.barThickness : root.workspaceButtonWidth
+            height: root.vertical ? root.workspaceButtonWidth : root.barThickness
 
+            // Same active pill geometry and primary color as the regular workspaces.
             Pill {
-                anchors.fill: parent
-                anchors.margins: 2
-                color: specialSlot.active ? Appearance.colors.colPrimary : "transparent"
-                Behavior on color {
-                    animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                anchors {
+                    verticalCenter: root.vertical ? undefined : parent.verticalCenter
+                    horizontalCenter: root.vertical ? parent.horizontalCenter : undefined
                 }
+                x: root.vertical ? 0 : root.activeWorkspaceMargin
+                y: root.vertical ? root.activeWorkspaceMargin : 0
+                implicitWidth: root.vertical ? root.activeWorkspaceSize : root.activeWorkspaceSize
+                implicitHeight: root.vertical ? root.activeWorkspaceSize : root.activeWorkspaceSize
+                opacity: specialSlot.active ? 1 : 0
+
+                Behavior on opacity {
+                    animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+                }
+            }
+
+            // Reuse the same hover/press overlay as the original workspace indicators.
+            StateOverlay {
+                anchors.fill: parent
+                radius: Math.min(width, height) / 2
+                hover: mouseArea.containsMouse
+                press: mouseArea.containsPress
+                drag: true
+                contentColor: Appearance.colors.colPrimary
             }
 
             MaterialSymbol {
                 anchors.centerIn: parent
-                iconSize: 17
-                color: specialSlot.active ? Appearance.colors.colOnPrimary : Appearance.colors.colOnLayer1
+                iconSize: root.workspaceIconSize
+                color: specialSlot.active
+                    ? Appearance.colors.colOnPrimary
+                    : Appearance.colors.colOnLayer1
                 opacity: specialSlot.exists || specialSlot.active ? 1 : 0.55
-                text: {
-                    const name = specialSlot.modelData.toLowerCase();
-                    if (name === "chat" || name.includes("discord")) return "forum";
-                    if (name === "musica" || name.includes("music") || name.includes("spotify")) return "music_note";
-                    return "widgets";
+                text: specialSlot.iconName
+
+                Behavior on color {
+                    animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
+                }
+                Behavior on opacity {
+                    animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
                 }
             }
 
             MouseArea {
+                id: mouseArea
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
+                hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
+
                 onClicked: {
                     const command = Hyprland.usingLua
                         ? `hl.dsp.workspace.toggle_special('${specialSlot.modelData}')`
