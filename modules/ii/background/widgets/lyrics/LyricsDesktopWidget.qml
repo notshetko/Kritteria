@@ -45,14 +45,21 @@ AbstractBackgroundWidget {
     property bool instrumentalCandidate: false
     readonly property bool activeLineWordSynced: LyricsService.activeIndex >= 0 && (LyricsService.lyricsLines[LyricsService.activeIndex]?.words || []).length > 1
     readonly property int centerSlot: LyricsService.before
-    readonly property bool blurEnabled: configEntry.enableBlur ?? true
-    readonly property bool bounceEnabled: configEntry.enableBounce ?? true
-    readonly property bool backgroundEnabled: configEntry.enableBackground ?? true
+    // Mutable live state is intentional: Config.options stores nested JS data, whose member
+    // mutations do not reliably notify QML bindings. Studio changes are relayed explicitly.
+    property bool blurEnabled: configEntry.enableBlur ?? true
+    property bool bounceEnabled: configEntry.enableBounce ?? true
+    property bool backgroundEnabled: configEntry.enableBackground ?? true
     readonly property bool glitchEnabled: configEntry.enableGlitch ?? true
-    readonly property bool particlesEnabled: configEntry.enableParticles ?? true
-    readonly property bool karaokeBallEnabled: configEntry.enableKaraokeBall ?? true
-    readonly property bool waveLettersEnabled: configEntry.enableWaveLetters ?? false
-    readonly property real bounceIntensity: Math.max(0, Math.min(1, Number(configEntry.bounceIntensity ?? 0.55)))
+    property bool particlesEnabled: configEntry.enableParticles ?? true
+    property bool karaokeBallEnabled: configEntry.enableKaraokeBall ?? true
+    property bool waveLettersEnabled: configEntry.enableWaveLetters ?? false
+    property real bounceIntensity: Math.max(0, Math.min(1, Number(configEntry.bounceIntensity ?? 0.55)))
+    property real waveIntensity: Number(configEntry.waveIntensity ?? 0.38)
+    property real waveSpeed: Number(configEntry.waveSpeed ?? 1.0)
+    property real cloudOpacity: Number(configEntry.cloudOpacity ?? 0.55)
+    property string accentMode: String(configEntry.accentMode ?? "album")
+    property string customAccentColor: String(configEntry.customAccentColor ?? "#b7a1ff")
     readonly property real rowHeight: Math.max(44, Math.min(90, (root.height - 30) / 7))
     onActiveWordIndexChanged: {
         if (root.karaokeBallEnabled && root.activeWordIndex >= 0)
@@ -65,7 +72,7 @@ AbstractBackgroundWidget {
     }
 
     readonly property string lyricFont: Appearance.font.family.main
-    readonly property int lyricFontWeight: Math.max(400, Math.min(900, Number(root.configEntry.lyricFontWeight ?? 700)))
+    property int lyricFontWeight: Math.max(400, Math.min(900, Number(root.configEntry.lyricFontWeight ?? 700)))
     readonly property string albumArtUrl: String(LyricsService.activePlayer?.trackArtUrl ?? "")
     // Canvas samples the current MPRIS artwork into a tiny palette. Text and outlines follow the album,
     // with the outline always darker than the foreground for contrast. Material colors are fallback only.
@@ -73,7 +80,7 @@ AbstractBackgroundWidget {
     property color albumSecondaryColor: Appearance.colors.colSecondary ?? "#8bc8ff"
     readonly property color albumGlowColor: root.albumBaseColor
     readonly property color lyricColor: {
-        if (String(root.configEntry.accentMode ?? "album") === "custom") return root.configEntry.customAccentColor ?? "#b7a1ff"
+        if (root.accentMode === "custom") return root.customAccentColor
         if (String(root.configEntry.accentMode ?? "album") === "theme") return Appearance.colors.colPrimary ?? "#b7a1ff"
         const c = root.albumBaseColor
         const luminance = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722
@@ -103,12 +110,28 @@ AbstractBackgroundWidget {
     }
 
     function toggleFeature(key) {
-        if (key === "blur") root.configEntry.enableBlur = !root.blurEnabled
-        else if (key === "bounce") root.configEntry.enableBounce = !root.bounceEnabled
-        else if (key === "background") root.configEntry.enableBackground = !root.backgroundEnabled
+        if (key === "blur") root.applyStudioSetting("enableBlur", !root.blurEnabled)
+        else if (key === "bounce") root.applyStudioSetting("enableBounce", !root.bounceEnabled)
+        else if (key === "background") root.applyStudioSetting("enableBackground", !root.backgroundEnabled)
         else if (key === "glitch") root.configEntry.enableGlitch = !root.glitchEnabled
-        else if (key === "particles") root.configEntry.enableParticles = !root.particlesEnabled
-        else if (key === "karaoke") root.configEntry.enableKaraokeBall = !root.karaokeBallEnabled
+        else if (key === "particles") root.applyStudioSetting("enableParticles", !root.particlesEnabled)
+        else if (key === "karaoke") root.applyStudioSetting("enableKaraokeBall", !root.karaokeBallEnabled)
+    }
+
+    function applyStudioSetting(key, value) {
+        if (key === "enableBlur") { root.blurEnabled = !!value; root.configEntry.enableBlur = !!value }
+        else if (key === "enableBounce") { root.bounceEnabled = !!value; root.configEntry.enableBounce = !!value }
+        else if (key === "enableBackground") { root.backgroundEnabled = !!value; root.configEntry.enableBackground = !!value }
+        else if (key === "enableParticles") { root.particlesEnabled = !!value; root.configEntry.enableParticles = !!value }
+        else if (key === "enableKaraokeBall") { root.karaokeBallEnabled = !!value; root.configEntry.enableKaraokeBall = !!value }
+        else if (key === "enableWaveLetters") { root.waveLettersEnabled = !!value; root.configEntry.enableWaveLetters = !!value }
+        else if (key === "bounceIntensity") { root.bounceIntensity = Number(value); root.configEntry.bounceIntensity = Number(value) }
+        else if (key === "lyricFontWeight") { root.lyricFontWeight = Number(value); root.configEntry.lyricFontWeight = Number(value) }
+        else if (key === "waveIntensity") { root.waveIntensity = Number(value); root.configEntry.waveIntensity = Number(value) }
+        else if (key === "waveSpeed") { root.waveSpeed = Number(value); root.configEntry.waveSpeed = Number(value) }
+        else if (key === "cloudOpacity") { root.cloudOpacity = Number(value); root.configEntry.cloudOpacity = Number(value) }
+        else if (key === "accentMode") { root.accentMode = String(value); root.configEntry.accentMode = String(value) }
+        else if (key === "customAccentColor") { root.customAccentColor = String(value); root.configEntry.customAccentColor = String(value) }
     }
 
     function normalizeLyricGeometry(value) {
@@ -397,7 +420,7 @@ AbstractBackgroundWidget {
             anchors.fill: parent
             visible: root.backgroundEnabled && status === ShaderEffect.Compiled && (LyricsService.playing || opacity > 0.01)
             // Transparent outside the central stylized cloud; never paint the widget bounds.
-            opacity: root.backgroundEnabled && LyricsService.playing ? Number(root.configEntry.cloudOpacity ?? 0.55) : 0
+            opacity: root.backgroundEnabled && LyricsService.playing ? root.cloudOpacity : 0
             fragmentShader: Qt.resolvedUrl("lyrics-cloud.frag.qsb")
             property real uTime: root.shimmer
             property real uEnergy: root.audioEnergy
@@ -826,8 +849,8 @@ AbstractBackgroundWidget {
                                             color: romanizedMain.color
                                             style: Text.Outline
                                             styleColor: romanizedMain.styleColor
-                                            y: Math.sin(root.shimmer * Number(root.configEntry.waveSpeed ?? 1.0) + index * 0.58)
-                                                * Number(root.configEntry.waveIntensity ?? 0.38) * 8
+                                            y: Math.sin(root.shimmer * root.waveSpeed + index * 0.58)
+                                                * root.waveIntensity * 8
                                                 - root.lyricBounce * 12
                                             Behavior on y { NumberAnimation { duration: 80; easing.type: Easing.OutSine } }
                                         }
@@ -1087,6 +1110,20 @@ AbstractBackgroundWidget {
         configEntry: root.configEntry
         open: root.settingsOpen && !Config.options.background.widgetsLocked
         accent: "#a9baff"
+        enableBlur: root.blurEnabled
+        enableBounce: root.bounceEnabled
+        enableBackground: root.backgroundEnabled
+        enableParticles: root.particlesEnabled
+        enableKaraokeBall: root.karaokeBallEnabled
+        enableWaveLetters: root.waveLettersEnabled
+        bounceIntensity: root.bounceIntensity
+        lyricFontWeight: root.lyricFontWeight
+        waveIntensity: root.waveIntensity
+        waveSpeed: root.waveSpeed
+        cloudOpacity: root.cloudOpacity
+        accentMode: root.accentMode
+        customAccentColor: root.customAccentColor
+        onSettingChanged: (key, value) => root.applyStudioSetting(key, value)
     }
 
     ResizeHandler {
