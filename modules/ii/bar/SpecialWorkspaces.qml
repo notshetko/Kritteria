@@ -11,6 +11,8 @@ import qs.modules.common.widgets
 Item {
     id: root
 
+    signal styleEditorRequested()
+
     readonly property bool vertical: Config.options.bar.vertical
     property color contentColor: Appearance.colors.colOnLayer1
     property bool contentColorOverridden: false
@@ -21,6 +23,7 @@ Item {
         || Config.options.bar.cornerStyle === 4) ? 30 : 26
     readonly property real activeWorkspaceMargin: 2
     readonly property real activeWorkspaceSize: workspaceButtonWidth - activeWorkspaceMargin * 2
+    readonly property var specialNames: Config.options.bar.specialWorkspaces ?? ["chat", "musica"]
     readonly property int slotCount: specialNames.length
 
     WorkspaceModel {
@@ -28,22 +31,8 @@ Item {
         screen: root.QsWindow.window?.screen
     }
 
-    // The module is optional in the bar layout. Keep the two named spaces available,
-    // then append any additional special workspaces created in Hyprland.
-    readonly property var specialNames: {
-        const names = ["chat", "musica"];
-        const workspaces = Hyprland.workspaces?.values ?? [];
-        for (let i = 0; i < workspaces.length; i++) {
-            const name = workspaces[i]?.name ?? "";
-            if (!name.startsWith("special:")) continue;
-            const shortName = name.slice("special:".length);
-            if (shortName && !names.includes(shortName)) names.push(shortName);
-        }
-        return names;
-    }
-
-    implicitWidth: vertical ? barThickness : slotCount * workspaceButtonWidth
-    implicitHeight: vertical ? slotCount * workspaceButtonWidth : barThickness
+    implicitWidth: vertical ? barThickness : (slotCount + 1) * workspaceButtonWidth
+    implicitHeight: vertical ? (slotCount + 1) * workspaceButtonWidth : barThickness
 
     Repeater {
         model: root.specialNames
@@ -69,8 +58,6 @@ Item {
             width: root.vertical ? root.barThickness : root.workspaceButtonWidth
             height: root.vertical ? root.workspaceButtonWidth : root.barThickness
 
-            // Match the regular workspace active indicator; BarGroup supplies
-            // the capsule/background and its own padding around this module.
             StyledRectangle {
                 anchors {
                     verticalCenter: root.vertical ? undefined : parent.verticalCenter
@@ -80,7 +67,7 @@ Item {
                 y: root.vertical ? root.activeWorkspaceMargin : undefined
                 implicitWidth: root.activeWorkspaceSize
                 implicitHeight: root.activeWorkspaceSize
-                radius: activeWorkspaceSize / 2
+                radius: root.activeWorkspaceSize / 2
                 color: specialSlot.active ? Appearance.colors.colPrimary : "transparent"
 
                 Behavior on color {
@@ -88,8 +75,6 @@ Item {
                 }
             }
 
-            // Keep hover/press feedback confined to the workspace indicator.
-            // The BarGroup owns the outer shape and group styling.
             StateOverlay {
                 anchors.centerIn: parent
                 width: root.activeWorkspaceSize
@@ -121,16 +106,111 @@ Item {
             MouseArea {
                 id: mouseArea
                 anchors.fill: parent
-                acceptedButtons: Qt.LeftButton
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
 
-                onClicked: {
+                onClicked: mouse => {
+                    if (mouse.button === Qt.RightButton) {
+                        if ((mouse.modifiers & Qt.MetaModifier) !== 0) {
+                            // Remove the slot from the bar without closing its windows.
+                            const remaining = root.specialNames.filter(name => name !== specialSlot.modelData);
+                            Config.options.bar.specialWorkspaces = remaining;
+                            if (specialSlot.active) {
+                                const command = Hyprland.usingLua
+                                    ? `hl.dsp.workspace.toggle_special('${specialSlot.modelData}')`
+                                    : `togglespecialworkspace ${specialSlot.modelData}`;
+                                Hyprland.dispatch(command);
+                            }
+                        } else {
+                            root.styleEditorRequested();
+                        }
+                        return;
+                    }
+
                     const command = Hyprland.usingLua
                         ? `hl.dsp.workspace.toggle_special('${specialSlot.modelData}')`
                         : `togglespecialworkspace ${specialSlot.modelData}`;
                     Hyprland.dispatch(command);
                 }
+            }
+        }
+    }
+
+    // The add slot appears at the end of the list. Hover for one second to
+    // reveal the plus, then click to create and open a new named special space.
+    Item {
+        id: addSlot
+
+        x: root.vertical ? 0 : root.slotCount * root.workspaceButtonWidth
+        y: root.vertical ? root.slotCount * root.workspaceButtonWidth : 0
+        width: root.vertical ? root.barThickness : root.workspaceButtonWidth
+        height: root.vertical ? root.workspaceButtonWidth : root.barThickness
+
+        property bool revealed: false
+
+        Timer {
+            id: revealTimer
+            interval: 1000
+            repeat: false
+            onTriggered: addSlot.revealed = true
+        }
+
+        StateOverlay {
+            anchors.centerIn: parent
+            width: root.activeWorkspaceSize
+            height: root.activeWorkspaceSize
+            radius: root.activeWorkspaceSize / 2
+            hover: addMouseArea.containsMouse
+            press: addMouseArea.containsPress
+            contentColor: Appearance.colors.colPrimary
+        }
+
+        MaterialSymbol {
+            anchors.centerIn: parent
+            text: "add"
+            iconSize: root.workspaceButtonWidth * 0.50
+            color: root.contentColorOverridden ? root.contentColor : Appearance.colors.colOnLayer1
+            opacity: addSlot.revealed ? 1 : 0
+
+            Behavior on opacity {
+                animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+            }
+        }
+
+        MouseArea {
+            id: addMouseArea
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            hoverEnabled: true
+            cursorShape: addSlot.revealed ? Qt.PointingHandCursor : Qt.ArrowCursor
+
+            onEntered: {
+                addSlot.revealed = false;
+                revealTimer.restart();
+            }
+            onExited: {
+                revealTimer.stop();
+                addSlot.revealed = false;
+            }
+            onClicked: {
+                if (!addSlot.revealed) return;
+
+                const names = root.specialNames.slice();
+                let number = 1;
+                let newName = "extra" + number;
+                while (names.includes(newName)) {
+                    number++;
+                    newName = "extra" + number;
+                }
+
+                names.push(newName);
+                Config.options.bar.specialWorkspaces = names;
+
+                const command = Hyprland.usingLua
+                    ? `hl.dsp.workspace.toggle_special('${newName}')`
+                    : `togglespecialworkspace ${newName}`;
+                Hyprland.dispatch(command);
             }
         }
     }
