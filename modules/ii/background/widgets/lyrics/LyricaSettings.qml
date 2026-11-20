@@ -158,10 +158,6 @@ Rectangle {
                         accent: root.accent
                     }
                     LyricaStudioSlider {
-                        id: cloudOpacitySlider
-                        id: waveSpeedSlider
-                        id: waveIntensitySlider
-                        id: bounceIntensitySlider
                         id: fontWeightSlider
                         width: parent.width
                         from: 400; to: 900; stepSize: 50
@@ -265,6 +261,7 @@ Rectangle {
                         accent: root.accent
                     }
                     LyricaStudioSlider {
+                        id: bounceIntensitySlider
                         width: parent.width
                         from: 0.1; to: 1.0; stepSize: 0.05
                         value: Number(root.bounceIntensity)
@@ -284,6 +281,7 @@ Rectangle {
                         accent: root.accent
                     }
                     LyricaStudioSlider {
+                        id: waveIntensitySlider
                         width: parent.width
                         from: 0; to: 1; stepSize: 0.025
                         value: Number(root.waveIntensity)
@@ -296,6 +294,7 @@ Rectangle {
                         accent: root.accent
                     }
                     LyricaStudioSlider {
+                        id: waveSpeedSlider
                         width: parent.width
                         from: 0.25; to: 2.0; stepSize: 0.05
                         value: Number(root.waveSpeed)
@@ -331,6 +330,7 @@ Rectangle {
                         accent: root.accent
                     }
                     LyricaStudioSlider {
+                        id: cloudOpacitySlider
                         width: parent.width
                         from: 0; to: 1; stepSize: 0.025
                         value: Number(root.cloudOpacity)
