@@ -919,7 +919,6 @@ AbstractBackgroundWidget {
                                     }
                                 }
                             }
-                            }
                         }
                     }
                 }
