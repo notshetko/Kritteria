@@ -777,7 +777,7 @@ AbstractBackgroundWidget {
                                             required property int index
                                             required property string modelData
                                             readonly property real pulse: Math.max(0, Math.sin(root.shimmer * 7.2 + index * 1.91 + row.index * 2.3))
-                                            text: modelData === " " ? "\\u00a0" : modelData
+                                            text: modelData === " " ? "\u00a0" : modelData
                                             font: romanizedMain.font
                                             color: pulse > 0.84 ? (index % 2 === 0 ? "#ff78c8" : "#75eaff") : romanizedMain.color
                                             style: Text.Outline
