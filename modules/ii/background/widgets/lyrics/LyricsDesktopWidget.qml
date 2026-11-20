@@ -169,8 +169,13 @@ AbstractBackgroundWidget {
     // Optional live spectrum from CAVA; gracefully falls back to a soft glow.
     Process {
         id: spectrumProcess
-        command: ["bash", "-lc", "command -v cava >/dev/null 2>&1 && exec cava -p \"$HOME/.config/quickshell/end4-pC/lyrics-cava.conf\""]
+        command: ["/usr/bin/cava", "-p", `${FileUtils.trimFileProtocol(Directories.scriptPath)}/cava/raw_output_config.txt`]
         running: root.visible && LyricsService.playing
+        onRunningChanged: console.info("[CAVA/Lyrica] running=" + spectrumProcess.running)
+        onExited: (exitCode, exitStatus) => console.warn("[CAVA/Lyrica] exited code=" + exitCode + " status=" + exitStatus)
+        stderr: SplitParser {
+            onRead: data => console.warn("[CAVA/Lyrica] " + data)
+        }
         stdout: SplitParser {
             onRead: data => {
                 const values = String(data).trim().split(/[;,\s]+/).map(v => Number(v)).filter(v => Number.isFinite(v))
