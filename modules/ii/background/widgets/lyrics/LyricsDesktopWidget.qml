@@ -52,7 +52,7 @@ AbstractBackgroundWidget {
     readonly property bool particlesEnabled: configEntry.enableParticles ?? true
     readonly property bool karaokeBallEnabled: configEntry.enableKaraokeBall ?? true
     readonly property bool waveLettersEnabled: configEntry.enableWaveLetters ?? false
-    readonly property real bounceIntensity: Math.max(0, Math.min(2.5, Number(configEntry.bounceIntensity ?? 1.8)))
+    readonly property real bounceIntensity: Math.max(0, Math.min(1, Number(configEntry.bounceIntensity ?? 0.55)))
     readonly property real rowHeight: Math.max(44, Math.min(90, (root.height - 30) / 7))
     onActiveWordIndexChanged: {
         if (root.karaokeBallEnabled && root.activeWordIndex >= 0)
@@ -217,7 +217,7 @@ AbstractBackgroundWidget {
             root.audioEnergy += (target - root.audioEnergy) * response
             root.beatPulse = Math.max(root.audioEnergy, beat)
             root.lyricBounce = root.bounceEnabled
-                ? Math.min(1.25, Math.pow(root.audioEnergy, 0.58) * root.bounceIntensity * 1.65)
+                ? Math.min(0.24, Math.pow(root.audioEnergy, 0.72) * root.bounceIntensity * 0.30)
                 : 0
             const active = LyricsService.activeIndex
             const line = active >= 0 ? LyricsService.lyricsLines[active] : null
@@ -755,11 +755,11 @@ AbstractBackgroundWidget {
                             }
                             Text {
                                 id: romanizedMain
-                                x: row.current && root.bounceEnabled ? Math.sin(root.shimmer * 0.7) * root.lyricBounce * 2.2 : 0
-                                y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) - (row.current ? root.lyricBounce * 5 : 0)
+                                x: row.current && root.bounceEnabled ? Math.sin(root.shimmer * 0.7) * root.lyricBounce * 0.65 : 0
+                                y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) - (row.current ? root.lyricBounce * 2 : 0)
                                 width: parent.width
                                 height: row.hanOnlyText ? Math.max(20, parent.height - 15) : parent.height
-                                scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.19 : 1
+                                scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.12 : 1
                                 transformOrigin: Item.Center
                                 transform: Rotation {
                                     origin.x: romanizedMain.width / 2
@@ -767,16 +767,7 @@ AbstractBackgroundWidget {
                                     axis.x: 1
                                     axis.y: 0
                                     axis.z: 0
-                                    angle: row.current && root.bounceEnabled ? -root.lyricBounce * 8 : 0
-                                }
-                                layer.enabled: true
-                                layer.effect: MultiEffect {
-                                    shadowEnabled: true
-                                    shadowColor: root.shadowColor
-                                    shadowBlur: 0.306 + root.lyricBounce * 0.52
-                                    shadowHorizontalOffset: 0
-                                    shadowVerticalOffset: 3 + root.lyricBounce * 8
-                                    shadowOpacity: 0.94
+                                    angle: row.current && root.bounceEnabled ? -root.lyricBounce * 5 : 0
                                 }
                                 Behavior on y { NumberAnimation { duration: 95; easing.type: Easing.OutCubic } }
                                 Behavior on scale { NumberAnimation { duration: 95; easing.type: Easing.OutCubic } }
