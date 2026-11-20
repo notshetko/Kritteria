@@ -827,54 +827,44 @@ AbstractBackgroundWidget {
                             }
 
 
-                            // Multi-layer signal breakup: chromatic ghosts, sliced scan bands,
-                            // pixel blocks and short horizontal sync tears. Kept on the distant row.
+                            // Small signal fragments, alpha-masked to the actual lyric glyphs.
+                            // Empty space in the text item's bounding box stays completely untouched.
                             Item {
+                                id: glitchMaskLayer
                                 z: 22
                                 anchors.fill: romanizedMain
                                 visible: root.glitchEnabled && row.dist === 3 && row.lyricText.length > 0 && !root.instrumentalNow && !root.songDone
                                 clip: true
 
-                                // Full-frame chromatic ghosts only flare during a glitch burst.
-                                Text {
-                                    z: 1
+                                Item {
+                                    id: glitchFragments
                                     anchors.fill: parent
-                                    text: row.displayText
-                                    font: romanizedMain.font
-                                    horizontalAlignment: romanizedMain.horizontalAlignment
-                                    verticalAlignment: romanizedMain.verticalAlignment
-                                    color: "#ff4fb8"
-                                    x: Math.sin(root.shimmer * 8.1 + row.index) * 5
-                                    opacity: Math.pow(Math.max(0, Math.sin(root.shimmer * 3.7 + row.index * 1.9)), 10) * 0.82
-                                }
-                                Text {
-                                    z: 2
-                                    anchors.fill: parent
-                                    text: row.displayText
-                                    font: romanizedMain.font
-                                    horizontalAlignment: romanizedMain.horizontalAlignment
-                                    verticalAlignment: romanizedMain.verticalAlignment
-                                    color: "#5cf6ff"
-                                    x: Math.cos(root.shimmer * 7.3 + row.index * 0.6) * 6
-                                    opacity: Math.pow(Math.max(0, Math.sin(root.shimmer * 4.1 + row.index * 2.4 + 1.2)), 9) * 0.78
+                                    visible: false
+
+                                    Repeater {
+                                        model: 8
+                                        delegate: Rectangle {
+                                            required property int index
+                                            readonly property real seed: row.index * 19.73 + index * 47.17
+                                            readonly property real flicker: Math.sin(root.shimmer * (1.8 + index * 0.13) + seed * 2.1)
+                                            x: Math.abs(Math.sin(root.shimmer * (0.48 + index * 0.035) + seed)) * Math.max(1, parent.width - width)
+                                            y: Math.abs(Math.cos(root.shimmer * (0.57 + index * 0.027) + seed * 1.7)) * Math.max(1, parent.height - height)
+                                            width: Math.max(2, parent.width * (0.006 + Math.abs(Math.sin(seed * 2.3)) * 0.018))
+                                            height: 2 + Math.floor(Math.abs(Math.cos(seed * 4.1)) * 2)
+                                            radius: 0
+                                            color: index % 3 === 0 ? "#ff4fb8" : index % 3 === 1 ? "#5cf6ff" : "#f7f5ff"
+                                            opacity: flicker > 0.70 ? Math.min(0.82, (flicker - 0.70) * 2.5) : 0
+                                        }
+                                    }
                                 }
 
-                                // Tiny, disconnected data fragments flicker briefly at unrelated positions.
-                                // No full-width slices or scan bars: the lyric stays clean and readable.
-                                Repeater {
-                                    model: 12
-                                    delegate: Rectangle {
-                                        required property int index
-                                        readonly property real seed: row.index * 19.73 + index * 47.17
-                                        readonly property real flicker: Math.sin(root.shimmer * (31.0 + index * 2.7) + seed * 3.1)
-                                        x: Math.abs(Math.sin(root.shimmer * (17.0 + index * 1.9) + seed)) * Math.max(1, parent.width - width)
-                                        y: Math.abs(Math.cos(root.shimmer * (23.0 + index * 1.3) + seed * 1.7)) * Math.max(1, parent.height - height)
-                                        width: Math.max(2, parent.width * (0.008 + Math.abs(Math.sin(seed * 2.3)) * 0.027))
-                                        height: 2 + Math.floor(Math.abs(Math.cos(seed * 4.1)) * 3)
-                                        radius: 0
-                                        color: index % 3 === 0 ? "#ff4fb8" : index % 3 === 1 ? "#5cf6ff" : "#f7f5ff"
-                                        opacity: flicker > 0.88 ? Math.min(0.92, (flicker - 0.88) * 8.0) : 0
-                                    }
+                                MultiEffect {
+                                    anchors.fill: parent
+                                    source: glitchFragments
+                                    maskEnabled: true
+                                    maskSource: romanizedMain
+                                    maskThresholdMin: 0.08
+                                    maskSpreadAtMin: 0.02
                                 }
                             }
                         }
