@@ -72,7 +72,7 @@ AbstractBackgroundWidget {
     }
 
     readonly property string lyricFont: Appearance.font.family.main
-    property int lyricFontWeight: Math.max(400, Math.min(900, Number(root.configEntry.lyricFontWeight ?? 700)))
+    property real lyricFontWeight: Math.max(400, Math.min(900, Number(root.configEntry.lyricFontWeight ?? 700)))
     readonly property string albumArtUrl: String(LyricsService.activePlayer?.trackArtUrl ?? "")
     // Canvas samples the current MPRIS artwork into a tiny palette. Text and outlines follow the album,
     // with the outline always darker than the foreground for contrast. Material colors are fallback only.
@@ -315,15 +315,15 @@ AbstractBackgroundWidget {
 
     function resetAlbumPalette() {
         // Reset immediately on track/art change so the previous song's palette never sticks.
-        root.albumBaseColor = Appearance.colors.colPrimary ?? "#b7a1ff"
-        root.albumSecondaryColor = Appearance.colors.colSecondary ?? "#8bc8ff"
-        paletteSampler.requestPaint()
+        root.albumBaseColor = "#a9baff"
+        root.albumSecondaryColor = "#8bded7"
+        paletteSampler.sourceUrl = root.albumArtUrl
+        if (root.albumArtUrl) paletteSampler.loadImage(root.albumArtUrl)
     }
     onAlbumArtUrlChanged: {
         resetAlbumPalette()
-        albumArtSource.source = ""
-        albumArtSource.source = root.albumArtUrl
-        paletteRetry.restart()
+        paletteSampler.sourceUrl = root.albumArtUrl
+        if (root.albumArtUrl) paletteSampler.loadImage(root.albumArtUrl)
     }
     Connections {
         target: LyricsService.activePlayer
@@ -340,206 +340,99 @@ AbstractBackgroundWidget {
         anchors.fill: parent
 
         // Source artwork remains hidden; its sampled colors drive the lyric fill, darker stroke and cloud.
-        Image {
-            id: albumArtSource
-            x: -32
-            y: -32
-            width: 16
-            height: 16
-            opacity: 0
-            visible: true
-            asynchronous: true
-            cache: true
-            source: root.albumArtUrl
-            sourceSize.width: 48
-            sourceSize.height: 48
-            fillMode: Image.PreserveAspectCrop
-            onSourceChanged: if (source && source.toString().length > 0) paletteRetry.restart()
-            onStatusChanged: if (status === Image.Ready) paletteSampler.requestPaint()
-        }
-        Timer {
-            id: paletteRetry
-            interval: 120
-            repeat: false
-            onTriggered: if (albumArtSource.status === Image.Ready) paletteSampler.requestPaint()
-        }
+        // Canvas loads the MPRIS art URL directly, then samples its pixels on the GUI side.
+        // Keep the sampler inside the widget: off-screen/zero-opacity canvases can skip paint on some backends.
         Canvas {
             id: paletteSampler
-            x: -32
-            y: -32
-            width: 12
-            height: 12
-            opacity: 0
+            x: 0
+            y: 0
+            width: 32
+            height: 32
+            opacity: 0.001
             visible: true
+            property string sourceUrl: root.albumArtUrl
+
+            onSourceUrlChanged: {
+                if (sourceUrl && sourceUrl.length > 0) {
+                    loadImage(sourceUrl)
+                }
+            }
+            onImageLoaded: requestPaint()
+
             onPaint: {
-                if (albumArtSource.status !== Image.Ready) return
+                if (!sourceUrl || sourceUrl.length === 0) return
+                if (!isImageLoaded(sourceUrl)) {
+                    loadImage(sourceUrl)
+                    return
+                }
+
                 const ctx = getContext("2d")
                 try {
                     ctx.clearRect(0, 0, width, height)
-                    ctx.drawImage(albumArtSource, 0, 0, width, height)
+                    ctx.drawImage(sourceUrl, 0, 0, width, height)
                     const data = ctx.getImageData(0, 0, width, height).data
-                    const bins = Array.from({length: 12}, () => ({score: 0, r: 0, g: 0, b: 0, count: 0}))
+                    const bins = Array.from({length: 18}, () => ({score: 0, r: 0, g: 0, b: 0}))
+                    let chromaPixels = 0
+
                     for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255
-                        const maxc = Math.max(r, g, b), minc = Math.min(r, g, b), delta = maxc - minc
+                        if (data[i + 3] < 128) continue
+                        const r = data[i] / 255
+                        const g = data[i + 1] / 255
+                        const b = data[i + 2] / 255
+                        const maxc = Math.max(r, g, b)
+                        const minc = Math.min(r, g, b)
+                        const delta = maxc - minc
                         const sat = maxc <= 0 ? 0 : delta / maxc
                         const lum = r * 0.2126 + g * 0.7152 + b * 0.0722
-                        if (data[i + 3] < 128 || sat < 0.16 || lum < 0.055 || lum > 0.96) continue
-                        let h = 0
+
+                        // Ignore near-white/near-black noise, but retain muted album colors.
+                        if (sat < 0.075 || lum < 0.035 || lum > 0.985) continue
+                        let hue = 0
                         if (delta > 0) {
-                            if (maxc === r) h = ((g - b) / delta) % 6
-                            else if (maxc === g) h = (b - r) / delta + 2
-                            else h = (r - g) / delta + 4
-                            h = (h / 6 + 1) % 1
+                            if (maxc === r) hue = ((g - b) / delta) % 6
+                            else if (maxc === g) hue = (b - r) / delta + 2
+                            else hue = (r - g) / delta + 4
+                            hue = (hue / 6 + 1) % 1
                         }
-                        const bucket = bins[Math.min(11, Math.floor(h * 12))]
-                        const weight = sat * (0.45 + lum * 0.55)
+
+                        const bucket = bins[Math.min(17, Math.floor(hue * 18))]
+                        const weight = (0.25 + sat * 1.15) * (0.65 + 0.35 * (1 - Math.abs(lum - 0.55)))
                         bucket.score += weight
-                        bucket.r += r * weight; bucket.g += g * weight; bucket.b += b * weight
-                        bucket.count++
+                        bucket.r += r * weight
+                        bucket.g += g * weight
+                        bucket.b += b * weight
+                        chromaPixels++
                     }
+
                     bins.sort((a, b) => b.score - a.score)
-                    const toColor = bucket => {
-                        if (!bucket || bucket.score <= 0) return null
-                        return Qt.rgba(bucket.r / bucket.score, bucket.g / bucket.score, bucket.b / bucket.score, 1)
-                    }
+                    const toColor = bucket => bucket && bucket.score > 0
+                        ? Qt.rgba(bucket.r / bucket.score, bucket.g / bucket.score, bucket.b / bucket.score, 1)
+                        : null
+
                     const primary = toColor(bins[0])
-                    const secondary = toColor(bins.find((b, i) => i > 0 && b.score > 0 && (!bins[0] || b.score > bins[0].score * 0.18)))
-                    if (primary) root.albumBaseColor = primary
-                    if (secondary) root.albumSecondaryColor = secondary
-                } catch (e) {
-                    // Some platform backends do not expose pixel readback; palette fallback remains usable.
+                    const secondary = toColor(bins.find((bucket, index) => index > 0 && bucket.score > bins[0].score * 0.10))
+                    if (primary && chromaPixels > 0) {
+                        root.albumBaseColor = primary
+                        root.albumSecondaryColor = secondary || Qt.lighter(primary, 1.42)
+                    }
+                } catch (error) {
+                    // Keep the cool lilac/teal fallback when a backend blocks Canvas pixel readback.
                 }
             }
         }
 
-        // GPU procedural cloud: fluid noise and motes are animated continuously, not reset by keyframes.
-        // The old vector cloud below remains as a fallback when qsb/ShaderEffect is unavailable.
-        ShaderEffect {
-            id: cloudShader
+        // Layered radial-volume cloud ported from the HTML/CSS prototype.
+        // The old compiled puff shader is deliberately bypassed; QML owns the live blurred volumes.
+        LyricaCloud {
             anchors.fill: parent
-            visible: root.backgroundEnabled && status === ShaderEffect.Compiled && (LyricsService.playing || opacity > 0.01)
-            // Transparent outside the central stylized cloud; never paint the widget bounds.
-            opacity: root.backgroundEnabled && LyricsService.playing ? root.cloudOpacity : 0
-            fragmentShader: Qt.resolvedUrl("lyrics-cloud.frag.qsb")
-            property real uTime: root.shimmer
-            property real uEnergy: root.audioEnergy
-            property real uParticles: root.particlesEnabled ? 1.0 : 0.0
-            property color uColorA: root.albumCloudColorA
-            property color uColorB: root.albumCloudColorB
-            property color uColorC: root.albumCloudColorC
-            Behavior on opacity { NumberAnimation { duration: 700; easing.type: Easing.InOutSine } }
-        }
-
-        // Organic QML fallback for systems where the optional shader could not be compiled.
-        Item {
-            id: lyricGlowCloud
-            visible: root.backgroundEnabled && cloudShader.status !== ShaderEffect.Compiled
-            anchors.centerIn: parent
-            // Compact, soft, stylized puff behind the focused lines; not a full-widget wash.
-            width: parent.width * 0.54
-            height: parent.height * 0.38
-            opacity: root.backgroundEnabled && LyricsService.playing ? 0.48 : 0
-            scale: 1 + root.audioEnergy * 0.022
-            Behavior on opacity { NumberAnimation { duration: 650; easing.type: Easing.OutCubic } }
-            Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-
-            Shape {
-                id: cloudBlobA
-                x: width * -0.06 + Math.sin(root.shimmer * 0.19) * 7
-                y: height * 0.03 + Math.cos(root.shimmer * 0.17) * 5
-                width: lyricGlowCloud.width * 0.92
-                height: lyricGlowCloud.height * 0.91
-                rotation: -7 + Math.sin(root.shimmer * 0.48) * 6
-                opacity: 0.28 + root.audioEnergy * 0.05
-                layer.enabled: true
-                layer.effect: MultiEffect { blurEnabled: root.blurEnabled; blur: root.blurEnabled ? 0.88 : 0; blurMax: 72; autoPaddingEnabled: true }
-                ShapePath {
-                    fillColor: root.albumCloudColorA
-                    strokeColor: "transparent"
-                    startX: cloudBlobA.width * 0.06; startY: cloudBlobA.height * 0.58
-                    PathCubic { x: cloudBlobA.width * 0.12; y: cloudBlobA.height * 0.32; control1X: cloudBlobA.width * 0.00; control1Y: cloudBlobA.height * 0.49; control2X: cloudBlobA.width * 0.03; control2Y: cloudBlobA.height * 0.34 }
-                    PathCubic { x: cloudBlobA.width * 0.26; y: cloudBlobA.height * 0.20; control1X: cloudBlobA.width * 0.14; control1Y: cloudBlobA.height * 0.19; control2X: cloudBlobA.width * 0.20; control2Y: cloudBlobA.height * 0.15 }
-                    PathCubic { x: cloudBlobA.width * 0.35; y: cloudBlobA.height * 0.07; control1X: cloudBlobA.width * 0.27; control1Y: cloudBlobA.height * 0.10; control2X: cloudBlobA.width * 0.31; control2Y: cloudBlobA.height * 0.02 }
-                    PathCubic { x: cloudBlobA.width * 0.47; y: cloudBlobA.height * 0.16; control1X: cloudBlobA.width * 0.39; control1Y: cloudBlobA.height * 0.02; control2X: cloudBlobA.width * 0.44; control2Y: cloudBlobA.height * 0.08 }
-                    PathCubic { x: cloudBlobA.width * 0.62; y: cloudBlobA.height * 0.09; control1X: cloudBlobA.width * 0.52; control1Y: cloudBlobA.height * 0.12; control2X: cloudBlobA.width * 0.57; control2Y: cloudBlobA.height * 0.04 }
-                    PathCubic { x: cloudBlobA.width * 0.75; y: cloudBlobA.height * 0.25; control1X: cloudBlobA.width * 0.68; control1Y: cloudBlobA.height * 0.08; control2X: cloudBlobA.width * 0.73; control2Y: cloudBlobA.height * 0.12 }
-                    PathCubic { x: cloudBlobA.width * 0.90; y: cloudBlobA.height * 0.29; control1X: cloudBlobA.width * 0.81; control1Y: cloudBlobA.height * 0.21; control2X: cloudBlobA.width * 0.86; control2Y: cloudBlobA.height * 0.23 }
-                    PathCubic { x: cloudBlobA.width * 0.97; y: cloudBlobA.height * 0.51; control1X: cloudBlobA.width * 0.96; control1Y: cloudBlobA.height * 0.36; control2X: cloudBlobA.width * 0.99; control2Y: cloudBlobA.height * 0.44 }
-                    PathCubic { x: cloudBlobA.width * 0.88; y: cloudBlobA.height * 0.70; control1X: cloudBlobA.width * 0.97; control1Y: cloudBlobA.height * 0.64; control2X: cloudBlobA.width * 0.93; control2Y: cloudBlobA.height * 0.70 }
-                    PathCubic { x: cloudBlobA.width * 0.76; y: cloudBlobA.height * 0.82; control1X: cloudBlobA.width * 0.84; control1Y: cloudBlobA.height * 0.71; control2X: cloudBlobA.width * 0.80; control2Y: cloudBlobA.height * 0.79 }
-                    PathCubic { x: cloudBlobA.width * 0.60; y: cloudBlobA.height * 0.79; control1X: cloudBlobA.width * 0.71; control1Y: cloudBlobA.height * 0.85; control2X: cloudBlobA.width * 0.66; control2Y: cloudBlobA.height * 0.83 }
-                    PathCubic { x: cloudBlobA.width * 0.47; y: cloudBlobA.height * 0.93; control1X: cloudBlobA.width * 0.56; control1Y: cloudBlobA.height * 0.84; control2X: cloudBlobA.width * 0.52; control2Y: cloudBlobA.height * 0.91 }
-                    PathCubic { x: cloudBlobA.width * 0.31; y: cloudBlobA.height * 0.83; control1X: cloudBlobA.width * 0.42; control1Y: cloudBlobA.height * 0.95; control2X: cloudBlobA.width * 0.36; control2Y: cloudBlobA.height * 0.89 }
-                    PathCubic { x: cloudBlobA.width * 0.17; y: cloudBlobA.height * 0.85; control1X: cloudBlobA.width * 0.26; control1Y: cloudBlobA.height * 0.81; control2X: cloudBlobA.width * 0.21; control2Y: cloudBlobA.height * 0.88 }
-                    PathCubic { x: cloudBlobA.width * 0.07; y: cloudBlobA.height * 0.71; control1X: cloudBlobA.width * 0.11; control1Y: cloudBlobA.height * 0.84; control2X: cloudBlobA.width * 0.05; control2Y: cloudBlobA.height * 0.80 }
-                    PathCubic { x: cloudBlobA.width * 0.06; y: cloudBlobA.height * 0.58; control1X: cloudBlobA.width * 0.02; control1Y: cloudBlobA.height * 0.65; control2X: cloudBlobA.width * 0.03; control2Y: cloudBlobA.height * 0.60 }
-                }
-            }
-            Shape {
-                id: cloudBlobB
-                x: lyricGlowCloud.width * (0.12 + 0.06 * (0.5 + 0.5 * Math.sin(root.shimmer * 0.15 + 1.1)))
-                y: lyricGlowCloud.height * 0.02 + Math.sin(root.shimmer * 0.13 + 2.0) * 5
-                width: lyricGlowCloud.width * 0.82
-                height: lyricGlowCloud.height * 0.86
-                rotation: 12 + Math.sin(root.shimmer * 0.37 + 1.8) * 8
-                opacity: 0.22 + root.audioEnergy * 0.045
-                layer.enabled: true
-                layer.effect: MultiEffect { blurEnabled: true; blur: 0.90; blurMax: 72; autoPaddingEnabled: true }
-                ShapePath {
-                    fillColor: root.albumCloudColorB
-                    strokeColor: "transparent"
-                    startX: cloudBlobB.width * 0.08; startY: cloudBlobB.height * 0.53
-                    PathCubic { x: cloudBlobB.width * 0.15; y: cloudBlobB.height * 0.30; control1X: cloudBlobB.width * 0.02; control1Y: cloudBlobB.height * 0.42; control2X: cloudBlobB.width * 0.06; control2Y: cloudBlobB.height * 0.31 }
-                    PathCubic { x: cloudBlobB.width * 0.31; y: cloudBlobB.height * 0.20; control1X: cloudBlobB.width * 0.21; control1Y: cloudBlobB.height * 0.18; control2X: cloudBlobB.width * 0.25; control2Y: cloudBlobB.height * 0.14 }
-                    PathCubic { x: cloudBlobB.width * 0.37; y: cloudBlobB.height * 0.07; control1X: cloudBlobB.width * 0.31; control1Y: cloudBlobB.height * 0.10; control2X: cloudBlobB.width * 0.33; control2Y: cloudBlobB.height * 0.01 }
-                    PathCubic { x: cloudBlobB.width * 0.51; y: cloudBlobB.height * 0.13; control1X: cloudBlobB.width * 0.42; control1Y: cloudBlobB.height * 0.03; control2X: cloudBlobB.width * 0.47; control2Y: cloudBlobB.height * 0.07 }
-                    PathCubic { x: cloudBlobB.width * 0.64; y: cloudBlobB.height * 0.20; control1X: cloudBlobB.width * 0.56; control1Y: cloudBlobB.height * 0.16; control2X: cloudBlobB.width * 0.60; control2Y: cloudBlobB.height * 0.21 }
-                    PathCubic { x: cloudBlobB.width * 0.79; y: cloudBlobB.height * 0.12; control1X: cloudBlobB.width * 0.69; control1Y: cloudBlobB.height * 0.12; control2X: cloudBlobB.width * 0.74; control2Y: cloudBlobB.height * 0.07 }
-                    PathCubic { x: cloudBlobB.width * 0.93; y: cloudBlobB.height * 0.31; control1X: cloudBlobB.width * 0.85; control1Y: cloudBlobB.height * 0.14; control2X: cloudBlobB.width * 0.92; control2Y: cloudBlobB.height * 0.20 }
-                    PathCubic { x: cloudBlobB.width * 0.90; y: cloudBlobB.height * 0.51; control1X: cloudBlobB.width * 0.98; control1Y: cloudBlobB.height * 0.42; control2X: cloudBlobB.width * 0.96; control2Y: cloudBlobB.height * 0.47 }
-                    PathCubic { x: cloudBlobB.width * 0.84; y: cloudBlobB.height * 0.68; control1X: cloudBlobB.width * 0.92; control1Y: cloudBlobB.height * 0.59; control2X: cloudBlobB.width * 0.88; control2Y: cloudBlobB.height * 0.66 }
-                    PathCubic { x: cloudBlobB.width * 0.68; y: cloudBlobB.height * 0.81; control1X: cloudBlobB.width * 0.78; control1Y: cloudBlobB.height * 0.76; control2X: cloudBlobB.width * 0.73; control2Y: cloudBlobB.height * 0.81 }
-                    PathCubic { x: cloudBlobB.width * 0.53; y: cloudBlobB.height * 0.79; control1X: cloudBlobB.width * 0.62; control1Y: cloudBlobB.height * 0.84; control2X: cloudBlobB.width * 0.58; control2Y: cloudBlobB.height * 0.81 }
-                    PathCubic { x: cloudBlobB.width * 0.43; y: cloudBlobB.height * 0.90; control1X: cloudBlobB.width * 0.49; control1Y: cloudBlobB.height * 0.77; control2X: cloudBlobB.width * 0.47; control2Y: cloudBlobB.height * 0.90 }
-                    PathCubic { x: cloudBlobB.width * 0.28; y: cloudBlobB.height * 0.83; control1X: cloudBlobB.width * 0.37; control1Y: cloudBlobB.height * 0.91; control2X: cloudBlobB.width * 0.31; control2Y: cloudBlobB.height * 0.88 }
-                    PathCubic { x: cloudBlobB.width * 0.16; y: cloudBlobB.height * 0.88; control1X: cloudBlobB.width * 0.23; control1Y: cloudBlobB.height * 0.84; control2X: cloudBlobB.width * 0.19; control2Y: cloudBlobB.height * 0.90 }
-                    PathCubic { x: cloudBlobB.width * 0.05; y: cloudBlobB.height * 0.70; control1X: cloudBlobB.width * 0.08; control1Y: cloudBlobB.height * 0.84; control2X: cloudBlobB.width * 0.02; control2Y: cloudBlobB.height * 0.79 }
-                    PathCubic { x: cloudBlobB.width * 0.08; y: cloudBlobB.height * 0.53; control1X: cloudBlobB.width * 0.01; control1Y: cloudBlobB.height * 0.63; control2X: cloudBlobB.width * 0.03; control2Y: cloudBlobB.height * 0.56 }
-                }
-            }
-            Shape {
-                id: cloudBlobC
-                x: lyricGlowCloud.width * 0.18
-                y: lyricGlowCloud.height * 0.13 + Math.sin(root.shimmer * 0.15 + 0.7) * 4
-                width: lyricGlowCloud.width * 0.65
-                height: lyricGlowCloud.height * 0.67
-                rotation: -18 + Math.sin(root.shimmer * 0.31 + 3.0) * 10
-                opacity: 0.18 + root.audioEnergy * 0.04
-                layer.enabled: true
-                layer.effect: MultiEffect { blurEnabled: root.blurEnabled; blur: root.blurEnabled ? 0.88 : 0; blurMax: 64; autoPaddingEnabled: true }
-                ShapePath {
-                    fillColor: root.albumCloudColorC
-                    strokeColor: "transparent"
-                    startX: cloudBlobC.width * 0.08; startY: cloudBlobC.height * 0.50
-                    PathCubic { x: cloudBlobC.width * 0.18; y: cloudBlobC.height * 0.25; control1X: cloudBlobC.width * 0.04; control1Y: cloudBlobC.height * 0.39; control2X: cloudBlobC.width * 0.10; control2Y: cloudBlobC.height * 0.27 }
-                    PathCubic { x: cloudBlobC.width * 0.34; y: cloudBlobC.height * 0.12; control1X: cloudBlobC.width * 0.24; control1Y: cloudBlobC.height * 0.13; control2X: cloudBlobC.width * 0.29; control2Y: cloudBlobC.height * 0.07 }
-                    PathCubic { x: cloudBlobC.width * 0.47; y: cloudBlobC.height * 0.19; control1X: cloudBlobC.width * 0.38; control1Y: cloudBlobC.height * 0.14; control2X: cloudBlobC.width * 0.42; control2Y: cloudBlobC.height * 0.20 }
-                    PathCubic { x: cloudBlobC.width * 0.61; y: cloudBlobC.height * 0.06; control1X: cloudBlobC.width * 0.52; control1Y: cloudBlobC.height * 0.18; control2X: cloudBlobC.width * 0.56; control2Y: cloudBlobC.height * 0.04 }
-                    PathCubic { x: cloudBlobC.width * 0.77; y: cloudBlobC.height * 0.22; control1X: cloudBlobC.width * 0.67; control1Y: cloudBlobC.height * 0.05; control2X: cloudBlobC.width * 0.73; control2Y: cloudBlobC.height * 0.10 }
-                    PathCubic { x: cloudBlobC.width * 0.90; y: cloudBlobC.height * 0.35; control1X: cloudBlobC.width * 0.84; control1Y: cloudBlobC.height * 0.22; control2X: cloudBlobC.width * 0.91; control2Y: cloudBlobC.height * 0.26 }
-                    PathCubic { x: cloudBlobC.width * 0.94; y: cloudBlobC.height * 0.57; control1X: cloudBlobC.width * 0.98; control1Y: cloudBlobC.height * 0.44; control2X: cloudBlobC.width * 0.96; control2Y: cloudBlobC.height * 0.51 }
-                    PathCubic { x: cloudBlobC.width * 0.80; y: cloudBlobC.height * 0.76; control1X: cloudBlobC.width * 0.92; control1Y: cloudBlobC.height * 0.68; control2X: cloudBlobC.width * 0.87; control2Y: cloudBlobC.height * 0.76 }
-                    PathCubic { x: cloudBlobC.width * 0.68; y: cloudBlobC.height * 0.86; control1X: cloudBlobC.width * 0.75; control1Y: cloudBlobC.height * 0.81; control2X: cloudBlobC.width * 0.72; control2Y: cloudBlobC.height * 0.88 }
-                    PathCubic { x: cloudBlobC.width * 0.54; y: cloudBlobC.height * 0.80; control1X: cloudBlobC.width * 0.63; control1Y: cloudBlobC.height * 0.85; control2X: cloudBlobC.width * 0.58; control2Y: cloudBlobC.height * 0.78 }
-                    PathCubic { x: cloudBlobC.width * 0.39; y: cloudBlobC.height * 0.92; control1X: cloudBlobC.width * 0.49; control1Y: cloudBlobC.height * 0.83; control2X: cloudBlobC.width * 0.44; control2Y: cloudBlobC.height * 0.92 }
-                    PathCubic { x: cloudBlobC.width * 0.26; y: cloudBlobC.height * 0.79; control1X: cloudBlobC.width * 0.34; control1Y: cloudBlobC.height * 0.93; control2X: cloudBlobC.width * 0.29; control2Y: cloudBlobC.height * 0.84 }
-                    PathCubic { x: cloudBlobC.width * 0.13; y: cloudBlobC.height * 0.82; control1X: cloudBlobC.width * 0.21; control1Y: cloudBlobC.height * 0.79; control2X: cloudBlobC.width * 0.16; control2Y: cloudBlobC.height * 0.86 }
-                    PathCubic { x: cloudBlobC.width * 0.04; y: cloudBlobC.height * 0.64; control1X: cloudBlobC.width * 0.06; control1Y: cloudBlobC.height * 0.78; control2X: cloudBlobC.width * 0.02; control2Y: cloudBlobC.height * 0.71 }
-                    PathCubic { x: cloudBlobC.width * 0.08; y: cloudBlobC.height * 0.50; control1X: cloudBlobC.width * 0.01; control1Y: cloudBlobC.height * 0.58; control2X: cloudBlobC.width * 0.04; control2Y: cloudBlobC.height * 0.52 }
-                }
-                scale: 1.01 + 0.085 * (0.5 + 0.5 * Math.sin(root.shimmer * 0.12 + 3.0))
-            }
+            z: 0
+            time: root.shimmer
+            energy: root.audioEnergy
+            colorA: root.albumBaseColor
+            colorB: root.albumSecondaryColor
+            colorC: root.albumCloudColorC
+            blurEnabled: root.blurEnabled
+            strength: root.backgroundEnabled && LyricsService.playing ? root.cloudOpacity : 0
         }
 
         Item {
@@ -585,7 +478,7 @@ AbstractBackgroundWidget {
 
         Repeater {
             model: root.particlesEnabled ? 24 : 0
-            visible: root.backgroundEnabled && cloudShader.status !== ShaderEffect.Compiled
+            visible: root.backgroundEnabled
             delegate: Text {
                 required property int index
                 readonly property real phase: root.shimmer + index * 1.41
@@ -798,7 +691,8 @@ AbstractBackgroundWidget {
                                 color: row.current ? root.lyricColor : root.mutedColor
                                 font.family: root.lyricFont
                                 font.pixelSize: row.current ? Math.min(36, root.rowHeight * 0.47) : row.dist === 1 ? Math.min(26, root.rowHeight * 0.35) : Math.min(21, root.rowHeight * 0.29)
-                                font.weight: row.current ? root.lyricFontWeight : Math.max(400, root.lyricFontWeight - 200)
+                                font.weight: Math.round(row.current ? root.lyricFontWeight : Math.max(400, root.lyricFontWeight - 200))
+                                font.variableAxes: ({ "wght": row.current ? Number(root.lyricFontWeight) : Math.max(400, Number(root.lyricFontWeight) - 200) })
                                 font.letterSpacing: row.current ? 0.15 : 0
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
