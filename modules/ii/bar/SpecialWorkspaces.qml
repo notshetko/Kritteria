@@ -4,7 +4,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import qs
-import qs.services
 import qs.modules.common
 import qs.modules.common.models
 import qs.modules.common.widgets
@@ -20,7 +19,6 @@ Item {
         || Config.options.bar.cornerStyle === 4) ? 30 : 26
     readonly property real activeWorkspaceMargin: 2
     readonly property real activeWorkspaceSize: workspaceButtonWidth - activeWorkspaceMargin * 2
-    readonly property real workspaceIconSize: workspaceButtonWidth * 0.50
     readonly property int slotCount: specialNames.length
 
     WorkspaceModel {
@@ -28,7 +26,8 @@ Item {
         screen: root.QsWindow.window?.screen
     }
 
-    // Keep Kritteria's chat/music spaces visible and append any other named specials.
+    // The module is optional in the bar layout. Keep the two named spaces available,
+    // then append any additional special workspaces created in Hyprland.
     readonly property var specialNames: {
         const names = ["chat", "musica"];
         const workspaces = Hyprland.workspaces?.values ?? [];
@@ -68,24 +67,25 @@ Item {
             width: root.vertical ? root.barThickness : root.workspaceButtonWidth
             height: root.vertical ? root.workspaceButtonWidth : root.barThickness
 
-            // Same active pill geometry and primary color as the regular workspaces.
-            Pill {
+            // Match the regular workspace active indicator; BarGroup supplies
+            // the capsule/background and its own padding around this module.
+            StyledRectangle {
                 anchors {
                     verticalCenter: root.vertical ? undefined : parent.verticalCenter
                     horizontalCenter: root.vertical ? parent.horizontalCenter : undefined
                 }
-                x: root.vertical ? 0 : root.activeWorkspaceMargin
-                y: root.vertical ? root.activeWorkspaceMargin : 0
-                implicitWidth: root.vertical ? root.activeWorkspaceSize : root.activeWorkspaceSize
-                implicitHeight: root.vertical ? root.activeWorkspaceSize : root.activeWorkspaceSize
-                opacity: specialSlot.active ? 1 : 0
+                x: root.vertical ? undefined : root.activeWorkspaceMargin
+                y: root.vertical ? root.activeWorkspaceMargin : undefined
+                implicitWidth: root.activeWorkspaceSize
+                implicitHeight: root.activeWorkspaceSize
+                radius: activeWorkspaceSize / 2
+                color: specialSlot.active ? Appearance.colors.colPrimary : "transparent"
 
-                Behavior on opacity {
-                    animation: Appearance.animation.elementMoveFast.numberAnimation.createObject(this)
+                Behavior on color {
+                    animation: Appearance.animation.elementMoveFast.colorAnimation.createObject(this)
                 }
             }
 
-            // Reuse the same hover/press overlay as the original workspace indicators.
             StateOverlay {
                 anchors.fill: parent
                 radius: Math.min(width, height) / 2
@@ -97,7 +97,7 @@ Item {
 
             MaterialSymbol {
                 anchors.centerIn: parent
-                iconSize: root.workspaceIconSize
+                iconSize: root.workspaceButtonWidth * 0.50
                 color: specialSlot.active
                     ? Appearance.colors.colOnPrimary
                     : Appearance.colors.colOnLayer1
