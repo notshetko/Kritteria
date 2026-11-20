@@ -24,6 +24,20 @@ Item {
     readonly property var specialNames: Config.options.bar.specialWorkspaces ?? ["chat", "musica"]
     readonly property int slotCount: specialNames.length
 
+    function cycleSpecialWorkspace(direction: int) {
+        const names = root.specialNames;
+        if (names.length < 2) return;
+        const currentIndex = names.indexOf(wsModel.specialWorkspaceName);
+        const nextIndex = currentIndex < 0
+            ? (direction > 0 ? 0 : names.length - 1)
+            : (currentIndex + direction + names.length) % names.length;
+        const nextName = names[nextIndex];
+        const command = Hyprland.usingLua
+            ? "hl.dsp.workspace.toggle_special('" + nextName + "')"
+            : "togglespecialworkspace " + nextName;
+        Hyprland.dispatch(command);
+    }
+
     WorkspaceModel {
         id: wsModel
         screen: root.QsWindow.window?.screen
@@ -153,6 +167,14 @@ Item {
 
                 onEntered: specialSlot.hovered = true
                 onExited: specialSlot.hovered = false
+
+                onWheel: event => {
+                    if (event.angleDelta.y < 0)
+                        root.cycleSpecialWorkspace(1);
+                    else if (event.angleDelta.y > 0)
+                        root.cycleSpecialWorkspace(-1);
+                    event.accepted = true;
+                }
 
                 onClicked: mouse => {
                     if (mouse.button === Qt.RightButton) {
