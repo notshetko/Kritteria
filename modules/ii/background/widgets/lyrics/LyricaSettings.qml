@@ -1,24 +1,23 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import qs.modules.common
+import qs.modules.common.widgets
 
 Rectangle {
     id: root
     required property var configEntry
     property bool open: false
-    property color accent: "#b7a1ff"
-    property color surfaceColor: "#281c38"
+    property color accent: "#a9baff"
     property int activeTab: 0
 
     visible: open
     opacity: open ? 1 : 0
     radius: 24
-    color: Qt.rgba(18 / 255, 17 / 255, 29 / 255, 0.94)
+    color: "#ee141a29"
     border.width: 1
-    border.color: Qt.rgba(accent.r, accent.g, accent.b, 0.34)
+    border.color: "#45a9baff"
     clip: true
     Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
@@ -29,57 +28,175 @@ Rectangle {
 
     function resetDefaults() {
         root.configEntry.accentMode = "album"
-        root.configEntry.customAccentColor = "#b7a1ff"
+        root.configEntry.customAccentColor = "#a9baff"
         root.configEntry.enableBlur = true
         root.configEntry.enableBounce = true
-        root.configEntry.bounceIntensity = 1.8
-        root.configEntry.lyricFontWeight = 700
+        root.configEntry.bounceIntensity = 1.6
+        root.configEntry.lyricFontWeight = 750
         root.configEntry.enableWaveLetters = false
-        root.configEntry.waveIntensity = 0.25
-        root.configEntry.waveSpeed = 0.75
+        root.configEntry.waveIntensity = 0.38
+        root.configEntry.waveSpeed = 1.0
         root.configEntry.enableBackground = true
         root.configEntry.cloudOpacity = 0.42
         root.configEntry.enableParticles = true
         root.configEntry.enableKaraokeBall = true
-        root.configEntry.showSource = true
+    }
+
+    component StudioSlider: Item {
+        id: slider
+        property real from: 0
+        property real to: 1
+        property real value: 0
+        property real stepSize: 0.01
+        property color accent: "#a9baff"
+        signal moved(real nextValue)
+        implicitHeight: 30
+        implicitWidth: 180
+        readonly property real normalized: Math.max(0, Math.min(1, (value - from) / Math.max(0.0001, to - from)))
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            height: 5
+            radius: 3
+            color: "#394258"
+            Rectangle {
+                width: parent.width * slider.normalized
+                height: parent.height
+                radius: parent.radius
+                color: slider.accent
+            }
+        }
+        Rectangle {
+            width: 17
+            height: 17
+            radius: 9
+            x: Math.max(0, Math.min(parent.width - width, slider.normalized * parent.width - width / 2))
+            anchors.verticalCenter: parent.verticalCenter
+            color: "#f5f6ff"
+            border.width: 3
+            border.color: slider.accent
+        }
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            preventStealing: true
+            cursorShape: pressed ? Qt.ClosedHandCursor : Qt.PointingHandCursor
+            function updateValue(mouseX) {
+                const raw = slider.from + Math.max(0, Math.min(1, mouseX / Math.max(1, width))) * (slider.to - slider.from)
+                const stepped = slider.from + Math.round((raw - slider.from) / Math.max(0.000001, slider.stepSize)) * slider.stepSize
+                slider.moved(Math.max(slider.from, Math.min(slider.to, stepped)))
+            }
+            onPressed: mouse => updateValue(mouse.x)
+            onPositionChanged: mouse => { if (pressed) updateValue(mouse.x) }
+        }
+    }
+
+    component StudioToggle: Item {
+        id: toggle
+        property bool checked: false
+        property color accent: "#a9baff"
+        signal toggled(bool nextValue)
+        implicitWidth: 44
+        implicitHeight: 26
+        Rectangle {
+            anchors.fill: parent
+            radius: 13
+            color: toggle.checked ? "#6579b5" : "#3b4358"
+            border.width: 1
+            border.color: toggle.checked ? "#9eb0ef" : "#596178"
+            Rectangle {
+                width: 18
+                height: 18
+                radius: 9
+                y: 3
+                x: toggle.checked ? parent.width - width - 4 : 4
+                color: "#f6f7ff"
+                Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+            }
+        }
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: toggle.toggled(!toggle.checked)
+        }
+    }
+
+    component SectionHeading: Column {
+        required property string heading
+        required property string description
+        width: parent.width
+        spacing: 4
+        Text {
+            text: parent.heading
+            color: "#f5f6ff"
+            font.pixelSize: 16
+            font.weight: Font.DemiBold
+        }
+        Text {
+            text: parent.description
+            color: "#aeb7ce"
+            font.pixelSize: 12
+            wrapMode: Text.Wrap
+            width: parent.width
+        }
+    }
+
+    component SettingRow: Row {
+        required property string label
+        property string valueText: ""
+        width: parent.width
+        spacing: 8
+        Text {
+            text: parent.label
+            color: "#e7eaf6"
+            font.pixelSize: 13
+            font.weight: Font.Medium
+            width: parent.width - 70
+            anchors.verticalCenter: parent.verticalCenter
+        }
+        Text {
+            text: parent.valueText
+            color: root.accent
+            font.pixelSize: 12
+            font.weight: Font.DemiBold
+            anchors.verticalCenter: parent.verticalCenter
+            horizontalAlignment: Text.AlignRight
+            width: 62
+        }
     }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 18
-        spacing: 13
+        anchors.margins: 20
+        spacing: 15
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: 12
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 3
-                Label {
+                Text {
                     text: "LYRICA STUDIO"
-                    color: "#fbf9ff"
-                    font.pixelSize: 21
+                    color: "#f6f7ff"
+                    font.pixelSize: 20
                     font.weight: Font.Bold
-                    font.letterSpacing: 1.15
+                    font.letterSpacing: 1.1
                 }
-                Label {
+                Text {
                     text: "Diseña cómo se sienten tus letras"
-                    color: "#c3bdce"
-                    font.pixelSize: 13
+                    color: "#aeb7ce"
+                    font.pixelSize: 12
                 }
             }
             Rectangle {
-                Layout.preferredWidth: 42
-                Layout.preferredHeight: 42
-                radius: 15
-                color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.16)
-                border.color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.36)
-                Text {
-                    anchors.centerIn: parent
-                    text: "✦"
-                    color: root.accent
-                    font.pixelSize: 22
-                }
+                Layout.preferredWidth: 40
+                Layout.preferredHeight: 40
+                radius: 14
+                color: "#1da9baff"
+                border.color: "#45a9baff"
+                Text { anchors.centerIn: parent; text: "✦"; color: root.accent; font.pixelSize: 20 }
             }
         }
 
@@ -88,37 +205,33 @@ Rectangle {
             spacing: 7
             Repeater {
                 model: [
-                    { title: "LETRAS", subtitle: "Tipografía", index: 0 },
-                    { title: "MOVIMIENTO", subtitle: "Audio y ritmo", index: 1 },
-                    { title: "AMBIENTE", subtitle: "Color y fondo", index: 2 }
+                    { title: "LETRAS", sub: "Tipografía", index: 0 },
+                    { title: "MOVIMIENTO", sub: "Audio y ritmo", index: 1 },
+                    { title: "AMBIENTE", sub: "Color y fondo", index: 2 }
                 ]
                 delegate: Rectangle {
                     required property var modelData
                     Layout.fillWidth: true
                     Layout.preferredHeight: 48
-                    radius: 13
-                    color: root.activeTab === modelData.index
-                        ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.20)
-                        : "#ffffff08"
+                    radius: 12
+                    color: root.activeTab === modelData.index ? "#2ca9baff" : "#0dffffff"
                     border.width: 1
-                    border.color: root.activeTab === modelData.index
-                        ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.55)
-                        : "#ffffff14"
+                    border.color: root.activeTab === modelData.index ? "#75a9baff" : "#18ffffff"
                     Column {
                         anchors.centerIn: parent
                         spacing: 2
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: modelData.title
-                            color: root.activeTab === modelData.index ? "#ffffff" : "#c6c0d0"
-                            font.pixelSize: 11
+                            color: root.activeTab === modelData.index ? "#f7f8ff" : "#aeb7ce"
+                            font.pixelSize: 10
                             font.weight: Font.Bold
-                            font.letterSpacing: 0.55
+                            font.letterSpacing: 0.5
                         }
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: modelData.subtitle
-                            color: "#a9a2b5"
+                            text: modelData.sub
+                            color: "#9ba5bd"
                             font.pixelSize: 10
                         }
                     }
@@ -127,358 +240,234 @@ Rectangle {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: root.activeTab = modelData.index
                     }
-                    Behavior on color { ColorAnimation { duration: 130 } }
                 }
             }
         }
 
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: "#ffffff1c"
-        }
+        Rectangle { Layout.fillWidth: true; height: 1; color: "#20ffffff" }
 
         StackLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: root.activeTab
 
-            // TYPOGRAPHY
             Flickable {
                 clip: true
                 contentWidth: width
-                contentHeight: typographyColumn.implicitHeight
+                contentHeight: typography.implicitHeight
                 boundsBehavior: Flickable.StopAtBounds
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-                ColumnLayout {
-                    id: typographyColumn
+                Column {
+                    id: typography
                     width: parent.width
-                    spacing: 14
-
-                    Label {
-                        text: "La línea principal"
-                        color: "#ffffff"
-                        font.pixelSize: 17
-                        font.weight: Font.DemiBold
+                    spacing: 13
+                    SectionHeading {
+                        heading: "Presencia tipográfica"
+                        description: "Ajusta el peso de la línea enfocada y el color que acompaña a la canción."
                     }
-                    Label {
-                        text: "Ajusta la presencia de la letra enfocada sin alterar el resto de la rueda."
-                        color: "#bdb6c9"
-                        font.pixelSize: 13
-                        wrapMode: Text.Wrap
-                        Layout.fillWidth: true
+                    SettingRow {
+                        label: "Grosor de la línea principal"
+                        valueText: String(Math.round(Number(root.value("lyricFontWeight", 750))))
                     }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Grosor"; color: "#f1edf7"; font.pixelSize: 14; Layout.fillWidth: true }
-                        Label {
-                            text: Math.round(Number(root.value("lyricFontWeight", 700)))
-                            color: root.accent
-                            font.pixelSize: 14
-                            font.weight: Font.Bold
-                        }
+                    StudioSlider {
+                        width: parent.width
+                        from: 400; to: 900; stepSize: 50
+                        value: Number(root.value("lyricFontWeight", 750))
+                        accent: root.accent
+                        onMoved: next => root.configEntry.lyricFontWeight = next
                     }
-                    Slider {
-                        id: weightSlider
-                        Layout.fillWidth: true
-                        from: 400
-                        to: 900
-                        stepSize: 50
-                        value: Number(root.value("lyricFontWeight", 700))
-                        onMoved: root.configEntry.lyricFontWeight = value
-                        background: Rectangle {
-                            x: weightSlider.leftPadding
-                            y: weightSlider.topPadding + weightSlider.availableHeight / 2 - height / 2
-                            width: weightSlider.availableWidth
-                            height: 5
-                            radius: 3
-                            color: "#ffffff24"
-                            Rectangle {
-                                width: weightSlider.visualPosition * parent.width
-                                height: parent.height
-                                radius: 3
-                                color: root.accent
-                            }
-                        }
-                        handle: Rectangle {
-                            x: weightSlider.leftPadding + weightSlider.visualPosition * (weightSlider.availableWidth - width)
-                            y: weightSlider.topPadding + weightSlider.availableHeight / 2 - height / 2
-                            width: 18
-                            height: 18
-                            radius: 9
-                            color: "#ffffff"
-                            border.width: 3
-                            border.color: root.accent
-                        }
-                    }
-
                     Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 74
-                        radius: 15
-                        color: "#ffffff0a"
-                        border.color: "#ffffff16"
+                        width: parent.width
+                        height: 76
+                        radius: 14
+                        color: "#0effffff"
+                        border.color: "#1effffff"
                         Column {
                             anchors.centerIn: parent
-                            spacing: 4
+                            spacing: 3
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Así se verá la línea principal"
-                                color: "#f8f5ff"
+                                text: "Your secret inside"
+                                color: "#f6f7ff"
                                 font.family: Appearance.font.family.main
-                                font.pixelSize: 19
-                                font.weight: Number(root.value("lyricFontWeight", 700))
+                                font.pixelSize: 20
+                                font.weight: Number(root.value("lyricFontWeight", 750))
                             }
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Vista previa del grosor"
-                                color: "#b8b1c4"
-                                font.pixelSize: 11
-                            }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Vista previa en vivo"; color: "#aeb7ce"; font.pixelSize: 10 }
                         }
                     }
-
-                    Label {
-                        text: "Color de acento"
-                        color: "#f1edf7"
-                        font.pixelSize: 14
-                        font.weight: Font.DemiBold
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
+                    Text { text: "Color de acento"; color: "#e7eaf6"; font.pixelSize: 13; font.weight: Font.Medium }
+                    Row {
+                        width: parent.width
                         spacing: 6
                         Repeater {
-                            model: [
-                                { title: "Carátula", key: "album" },
-                                { title: "Tema", key: "theme" },
-                                { title: "Propio", key: "custom" }
-                            ]
+                            model: [{ title: "Carátula", key: "album" }, { title: "Tema", key: "theme" }, { title: "Personalizado", key: "custom" }]
                             delegate: Rectangle {
                                 required property var modelData
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 38
-                                radius: 11
-                                color: String(root.value("accentMode", "album")) === modelData.key
-                                    ? Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.22)
-                                    : "#ffffff0a"
-                                border.color: String(root.value("accentMode", "album")) === modelData.key
-                                    ? root.accent : "#ffffff1a"
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.title
-                                    color: "#f5f1fb"
-                                    font.pixelSize: 12
-                                    font.weight: Font.Medium
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.configEntry.accentMode = modelData.key
-                                }
+                                width: (parent.width - 12) / 3
+                                height: 36
+                                radius: 10
+                                color: String(root.value("accentMode", "album")) === modelData.key ? "#2ca9baff" : "#0dffffff"
+                                border.color: String(root.value("accentMode", "album")) === modelData.key ? "#75a9baff" : "#20ffffff"
+                                Text { anchors.centerIn: parent; text: modelData.title; color: "#edf0fb"; font.pixelSize: 11 }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.configEntry.accentMode = modelData.key }
                             }
-                        }
-                    }
-                    TextField {
-                        Layout.fillWidth: true
-                        visible: String(root.value("accentMode", "album")) === "custom"
-                        placeholderText: "#RRGGBB"
-                        text: String(root.value("customAccentColor", "#b7a1ff"))
-                        color: "#ffffff"
-                        font.pixelSize: 14
-                        onEditingFinished: if (/^#[0-9a-fA-F]{6}$/.test(text)) root.configEntry.customAccentColor = text
-                        background: Rectangle {
-                            radius: 10
-                            color: "#ffffff0d"
-                            border.color: "#ffffff28"
-                        }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Bola de seguimiento karaoke"; color: "#f1edf7"; font.pixelSize: 13; Layout.fillWidth: true }
-                        Switch {
-                            checked: root.value("enableKaraokeBall", true)
-                            onToggled: root.configEntry.enableKaraokeBall = checked
-                            indicator: Rectangle {
-                                implicitWidth: 42; implicitHeight: 24
-                                x: parent.leftPadding
-                                y: parent.height / 2 - height / 2
-                                radius: 12
-                                color: parent.checked ? root.accent : "#55505f"
-                                Rectangle {
-                                    x: parent.parent.checked ? 21 : 3
-                                    y: 3
-                                    width: 18; height: 18; radius: 9
-                                    color: "#ffffff"
-                                    Behavior on x { NumberAnimation { duration: 120 } }
-                                }
-                            }
-                        }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Mostrar fuente de las letras"; color: "#f1edf7"; font.pixelSize: 13; Layout.fillWidth: true }
-                        Switch { checked: root.value("showSource", true); onToggled: root.configEntry.showSource = checked }
-                    }
-                }
-            }
-
-            // MOTION
-            Flickable {
-                clip: true
-                contentWidth: width
-                contentHeight: motionColumn.implicitHeight
-                boundsBehavior: Flickable.StopAtBounds
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-                ColumnLayout {
-                    id: motionColumn
-                    width: parent.width
-                    spacing: 13
-                    Label {
-                        text: "Reacción musical"
-                        color: "#ffffff"
-                        font.pixelSize: 17
-                        font.weight: Font.DemiBold
-                    }
-                    Label {
-                        text: "El movimiento responde al audio que ya utiliza el visualizador de Kritteria."
-                        color: "#bdb6c9"
-                        font.pixelSize: 13
-                        wrapMode: Text.Wrap
-                        Layout.fillWidth: true
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Rebote al ritmo"; color: "#f1edf7"; font.pixelSize: 14; Layout.fillWidth: true }
-                        Switch { checked: root.value("enableBounce", true); onToggled: root.configEntry.enableBounce = checked }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Intensidad del rebote"; color: "#f1edf7"; font.pixelSize: 13; Layout.fillWidth: true }
-                        Label { text: Math.round(Number(root.value("bounceIntensity", 1.8)) * 100) + "%"; color: root.accent; font.pixelSize: 13; font.weight: Font.Bold }
-                    }
-                    Slider {
-                        id: bounceSlider
-                        Layout.fillWidth: true
-                        from: 0.25; to: 2.5; stepSize: 0.05
-                        value: Number(root.value("bounceIntensity", 1.8))
-                        enabled: root.value("enableBounce", true)
-                        onMoved: root.configEntry.bounceIntensity = value
-                        background: Rectangle {
-                            x: bounceSlider.leftPadding
-                            y: bounceSlider.topPadding + bounceSlider.availableHeight / 2 - height / 2
-                            width: bounceSlider.availableWidth
-                            height: 5; radius: 3; color: "#ffffff24"
-                            Rectangle { width: bounceSlider.visualPosition * parent.width; height: parent.height; radius: 3; color: root.accent }
-                        }
-                        handle: Rectangle {
-                            x: bounceSlider.leftPadding + bounceSlider.visualPosition * (bounceSlider.availableWidth - width)
-                            y: bounceSlider.topPadding + bounceSlider.availableHeight / 2 - height / 2
-                            width: 18; height: 18; radius: 9; color: "#ffffff"; border.width: 3; border.color: root.accent
                         }
                     }
                     Rectangle {
-                        Layout.fillWidth: true
-                        height: 1
-                        color: "#ffffff18"
+                        width: parent.width
+                        height: 42
+                        radius: 10
+                        color: "#0effffff"
+                        visible: String(root.value("accentMode", "album")) === "custom"
+                        Row {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 10
+                            Text { text: "HEX"; color: "#aeb7ce"; anchors.verticalCenter: parent.verticalCenter; font.pixelSize: 11 }
+                            TextInput {
+                                width: parent.width - 45
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: String(root.value("customAccentColor", "#a9baff"))
+                                color: "#f5f6ff"
+                                font.pixelSize: 13
+                                selectByMouse: true
+                                onEditingFinished: if (/^#[0-9a-fA-F]{6}$/.test(text)) root.configEntry.customAccentColor = text
+                            }
+                        }
                     }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Onda serpenteante"; color: "#f1edf7"; font.pixelSize: 13; Layout.fillWidth: true }
-                        Switch { checked: root.value("enableWaveLetters", false); onToggled: root.configEntry.enableWaveLetters = checked }
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Intensidad de onda"; color: "#c8c1d2"; font.pixelSize: 12; Layout.fillWidth: true }
-                        Label { text: Math.round(Number(root.value("waveIntensity", 0.25)) * 100) + "%"; color: root.accent; font.pixelSize: 12 }
-                    }
-                    Slider {
-                        Layout.fillWidth: true
-                        from: 0; to: 1; stepSize: 0.025
-                        value: Number(root.value("waveIntensity", 0.25))
-                        enabled: root.value("enableWaveLetters", false)
-                        onMoved: root.configEntry.waveIntensity = value
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Velocidad de onda"; color: "#c8c1d2"; font.pixelSize: 12; Layout.fillWidth: true }
-                        Label { text: Number(root.value("waveSpeed", 0.75)).toFixed(2) + "×"; color: root.accent; font.pixelSize: 12 }
-                    }
-                    Slider {
-                        Layout.fillWidth: true
-                        from: 0.25; to: 1.8; stepSize: 0.05
-                        value: Number(root.value("waveSpeed", 0.75))
-                        enabled: root.value("enableWaveLetters", false)
-                        onMoved: root.configEntry.waveSpeed = value
+                    Row {
+                        width: parent.width
+                        height: 32
+                        spacing: 10
+                        Text { text: "Bola de seguimiento karaoke"; color: "#e7eaf6"; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
+                        StudioToggle { checked: root.value("enableKaraokeBall", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableKaraokeBall = next }
                     }
                 }
             }
 
-            // AMBIENCE
             Flickable {
                 clip: true
                 contentWidth: width
-                contentHeight: ambienceColumn.implicitHeight
+                contentHeight: motion.implicitHeight
                 boundsBehavior: Flickable.StopAtBounds
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-                ColumnLayout {
-                    id: ambienceColumn
+                Column {
+                    id: motion
                     width: parent.width
                     spacing: 13
-                    Label { text: "Escenario"; color: "#ffffff"; font.pixelSize: 17; font.weight: Font.DemiBold }
-                    Label {
-                        text: "Controla el ambiente visual que acompaña a la canción."
-                        color: "#bdb6c9"; font.pixelSize: 13; wrapMode: Text.Wrap; Layout.fillWidth: true
+                    SectionHeading {
+                        heading: "Respuesta al sonido"
+                        description: "La línea principal sigue la energía grave y los golpes del ritmo, con ataque rápido y caída suave."
                     }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Nube de fondo"; color: "#f1edf7"; font.pixelSize: 13; Layout.fillWidth: true }
-                        Switch { checked: root.value("enableBackground", true); onToggled: root.configEntry.enableBackground = checked }
+                    Row {
+                        width: parent.width
+                        height: 32
+                        Text { text: "Rebote musical"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
+                        StudioToggle { checked: root.value("enableBounce", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBounce = next }
                     }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Opacidad de la nube"; color: "#c8c1d2"; font.pixelSize: 12; Layout.fillWidth: true }
-                        Label { text: Math.round(Number(root.value("cloudOpacity", 0.42)) * 100) + "%"; color: root.accent; font.pixelSize: 12 }
+                    SettingRow {
+                        label: "Intensidad del rebote"
+                        valueText: Math.round(Number(root.value("bounceIntensity", 1.6)) * 100) + "%"
                     }
-                    Slider {
-                        Layout.fillWidth: true
+                    StudioSlider {
+                        width: parent.width
+                        from: 0.5; to: 2.5; stepSize: 0.05
+                        value: Number(root.value("bounceIntensity", 1.6))
+                        accent: root.accent
+                        onMoved: next => root.configEntry.bounceIntensity = next
+                    }
+                    Rectangle { width: parent.width; height: 1; color: "#20ffffff" }
+                    Row {
+                        width: parent.width
+                        height: 32
+                        Text { text: "Onda serpenteante"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
+                        StudioToggle { checked: root.value("enableWaveLetters", false); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableWaveLetters = next }
+                    }
+                    SettingRow {
+                        label: "Intensidad de onda"
+                        valueText: Math.round(Number(root.value("waveIntensity", 0.38)) * 100) + "%"
+                    }
+                    StudioSlider {
+                        width: parent.width
+                        from: 0; to: 1; stepSize: 0.025
+                        value: Number(root.value("waveIntensity", 0.38))
+                        accent: root.accent
+                        onMoved: next => root.configEntry.waveIntensity = next
+                    }
+                    SettingRow {
+                        label: "Velocidad de onda"
+                        valueText: Number(root.value("waveSpeed", 1.0)).toFixed(2) + "×"
+                    }
+                    StudioSlider {
+                        width: parent.width
+                        from: 0.25; to: 2.0; stepSize: 0.05
+                        value: Number(root.value("waveSpeed", 1.0))
+                        accent: root.accent
+                        onMoved: next => root.configEntry.waveSpeed = next
+                    }
+                }
+            }
+
+            Flickable {
+                clip: true
+                contentWidth: width
+                contentHeight: ambience.implicitHeight
+                boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                Column {
+                    id: ambience
+                    width: parent.width
+                    spacing: 13
+                    SectionHeading {
+                        heading: "Escenario ambiental"
+                        description: "Modifica el ambiente sin reducir el contraste ni la legibilidad de las letras."
+                    }
+                    Row {
+                        width: parent.width
+                        height: 32
+                        Text { text: "Nube de fondo"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
+                        StudioToggle { checked: root.value("enableBackground", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBackground = next }
+                    }
+                    SettingRow {
+                        label: "Opacidad de la nube"
+                        valueText: Math.round(Number(root.value("cloudOpacity", 0.42)) * 100) + "%"
+                    }
+                    StudioSlider {
+                        width: parent.width
                         from: 0; to: 1; stepSize: 0.025
                         value: Number(root.value("cloudOpacity", 0.42))
-                        enabled: root.value("enableBackground", true)
-                        onMoved: root.configEntry.cloudOpacity = value
+                        accent: root.accent
+                        onMoved: next => root.configEntry.cloudOpacity = next
                     }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Partículas"; color: "#f1edf7"; font.pixelSize: 13; Layout.fillWidth: true }
-                        Switch { checked: root.value("enableParticles", true); onToggled: root.configEntry.enableParticles = checked }
+                    Row {
+                        width: parent.width
+                        height: 32
+                        Text { text: "Partículas ambientales"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
+                        StudioToggle { checked: root.value("enableParticles", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableParticles = next }
                     }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Desenfoque ambiental"; color: "#f1edf7"; font.pixelSize: 13; Layout.fillWidth: true }
-                        Switch { checked: root.value("enableBlur", true); onToggled: root.configEntry.enableBlur = checked }
+                    Row {
+                        width: parent.width
+                        height: 32
+                        Text { text: "Desenfoque ambiental"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
+                        StudioToggle { checked: root.value("enableBlur", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBlur = next }
                     }
-                    Rectangle { Layout.fillWidth: true; height: 1; color: "#ffffff18" }
-                    Label {
-                        text: "Los ajustes se guardan directamente en la configuración del widget."
-                        color: "#aaa3b6"; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true
+                    Rectangle { width: parent.width; height: 1; color: "#20ffffff" }
+                    Text {
+                        text: "Los cambios se guardan directamente en la configuración del widget."
+                        color: "#9ba5bd"
+                        font.pixelSize: 11
+                        wrapMode: Text.Wrap
+                        width: parent.width
                     }
-                    Button {
-                        Layout.fillWidth: true
-                        text: "Restaurar ajustes recomendados"
-                        onClicked: root.resetDefaults()
-                        background: Rectangle {
-                            radius: 12
-                            color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.16)
-                            border.color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.42)
-                        }
-                        contentItem: Text {
-                            text: parent.text
-                            color: "#ffffff"
-                            font.pixelSize: 13
-                            font.weight: Font.DemiBold
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
+                    Rectangle {
+                        width: parent.width
+                        height: 40
+                        radius: 11
+                        color: "#20a9baff"
+                        border.color: "#55a9baff"
+                        Text { anchors.centerIn: parent; text: "Restaurar valores recomendados"; color: "#f4f6ff"; font.pixelSize: 12; font.weight: Font.DemiBold }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.resetDefaults() }
                     }
                 }
             }
