@@ -19,6 +19,7 @@ ContentPage {
     property var allWidgets: [
         { id: "leftSidebarButton", name: Translation.tr("Left Sidebar Button"),  icon: "left_panel_open" },
         { id: "workspaces",        name: Translation.tr("Workspaces"),           icon: "steppers" },
+        { id: "specialWorkspaces", name: Translation.tr("Special Workspaces"),   icon: "widgets" },
         { id: "weatherBar",        name: Translation.tr("Weather"),              icon: "flare" },
         { id: "liveWallpaper",     name: Translation.tr("Live wallpaper"),        icon: "play_pause" },
         { id: "media",             name: Translation.tr("Media"),                icon: "music_note" },
