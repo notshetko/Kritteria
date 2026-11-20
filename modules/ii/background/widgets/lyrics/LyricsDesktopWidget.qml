@@ -50,8 +50,8 @@ AbstractBackgroundWidget {
     readonly property bool glitchEnabled: configEntry.enableGlitch ?? true
     readonly property bool particlesEnabled: configEntry.enableParticles ?? true
     readonly property bool karaokeBallEnabled: configEntry.enableKaraokeBall ?? true
-    readonly property bool waveLettersEnabled: configEntry.enableWaveLetters ?? true
-    readonly property real bounceIntensity: Math.max(0, Math.min(2.5, Number(configEntry.bounceIntensity ?? 1)))
+    readonly property bool waveLettersEnabled: configEntry.enableWaveLetters ?? false
+    readonly property real bounceIntensity: Math.max(0, Math.min(2.5, Number(configEntry.bounceIntensity ?? 1.8)))
     readonly property real rowHeight: Math.max(44, Math.min(90, (root.height - 30) / 7))
     onActiveWordIndexChanged: {
         if (root.karaokeBallEnabled && root.activeWordIndex >= 0)
@@ -208,7 +208,7 @@ AbstractBackgroundWidget {
             const response = target > root.audioEnergy ? 0.48 : 0.105
             root.audioEnergy += (target - root.audioEnergy) * response
             root.beatPulse = root.audioEnergy
-            root.lyricBounce = root.bounceEnabled ? Math.min(1, root.audioEnergy * root.bounceIntensity) : 0
+            root.lyricBounce = root.bounceEnabled ? Math.min(1, Math.pow(root.audioEnergy, 0.65) * root.bounceIntensity * 1.5) : 0
             const active = LyricsService.activeIndex
             const line = active >= 0 ? LyricsService.lyricsLines[active] : null
             const next = active >= 0 ? LyricsService.lyricsLines[active + 1] : null
