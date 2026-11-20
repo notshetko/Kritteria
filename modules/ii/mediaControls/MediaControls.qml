@@ -102,6 +102,8 @@ Scope {
             }
         }
         command: ["/usr/bin/cava", "-p", `${FileUtils.trimFileProtocol(Directories.scriptPath)}/cava/raw_output_config.txt`]
+        onRunningChanged: console.info("[CAVA/bar] running=" + cavaProc.running)
+        onExited: (exitCode, exitStatus) => console.warn("[CAVA/bar] exited code=" + exitCode + " status=" + exitStatus)
         stderr: SplitParser {
             onRead: data => console.warn(`[CAVA] ${data}`)
         }
