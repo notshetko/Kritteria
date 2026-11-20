@@ -63,7 +63,7 @@ AbstractBackgroundWidget {
         NumberAnimation { target: root; property: "karaokeHop"; to: 0; duration: 148; easing.type: Easing.InOutCubic }
     }
 
-    readonly property string lyricFont: "Inter"
+    readonly property string lyricFont: Appearance.font.family.main
     readonly property int lyricFontWeight: Math.max(400, Math.min(900, Number(root.configEntry.lyricFontWeight ?? 700)))
     readonly property string albumArtUrl: String(LyricsService.activePlayer?.trackArtUrl ?? "")
     // Canvas samples the current MPRIS artwork into a tiny palette. Text and outlines follow the album,
@@ -1030,8 +1030,8 @@ AbstractBackgroundWidget {
         anchors.right: parent.right
         anchors.topMargin: 46
         anchors.rightMargin: 20
-        width: Math.min(420, Math.max(320, root.width * 0.38))
-        height: Math.min(root.height - 58, 510)
+        width: Math.min(480, Math.max(400, root.width * 0.40))
+        height: Math.min(root.height - 58, 540)
         z: 100
         configEntry: root.configEntry
         open: root.settingsOpen && !Config.options.background.widgetsLocked
