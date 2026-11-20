@@ -692,7 +692,7 @@ AbstractBackgroundWidget {
                                 font.family: root.lyricFont
                                 font.pixelSize: row.current ? Math.min(36, root.rowHeight * 0.47) : row.dist === 1 ? Math.min(26, root.rowHeight * 0.35) : Math.min(21, root.rowHeight * 0.29)
                                 font.weight: Math.round(row.current ? root.lyricFontWeight : Math.max(400, root.lyricFontWeight - 200))
-                                font.variableAxes: ({ "wght": row.current ? Number(root.lyricFontWeight) : Math.max(400, Number(root.lyricFontWeight) - 200) })
+                                font.variableAxes: ({ "wght": row.current ? Number(root.lyricFontWeight) : Math.max(400, Number(root.lyricFontWeight) - 200), "wdth": Number(Appearance.font.variableAxes.main.wdth ?? 100) })
                                 font.letterSpacing: row.current ? 0.15 : 0
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
