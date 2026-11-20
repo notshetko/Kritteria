@@ -181,7 +181,7 @@ Rectangle {
                                 font.family: Appearance.font.family.main
                                 font.pixelSize: 20
                                 font.weight: Math.round(Number(root.lyricFontWeight))
-                                font.variableAxes: ({ "wght": Number(root.lyricFontWeight) })
+                                font.variableAxes: ({ "wght": Number(root.lyricFontWeight), "wdth": Number(Appearance.font.variableAxes.main.wdth ?? 100) })
                             }
                             Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Vista previa en vivo"; color: "#aeb7ce"; font.pixelSize: 10 }
                         }
