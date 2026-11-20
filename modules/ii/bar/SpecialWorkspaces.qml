@@ -12,6 +12,8 @@ Item {
     id: root
 
     readonly property bool vertical: Config.options.bar.vertical
+    property color contentColor: Appearance.colors.colOnLayer1
+    property bool contentColorOverridden: false
     readonly property real barThickness: vertical
         ? Appearance.sizes.verticalBarWidth
         : Appearance.sizes.barHeight
@@ -86,9 +88,13 @@ Item {
                 }
             }
 
+            // Keep hover/press feedback confined to the workspace indicator.
+            // The BarGroup owns the outer shape and group styling.
             StateOverlay {
-                anchors.fill: parent
-                radius: Math.min(width, height) / 2
+                anchors.centerIn: parent
+                width: root.activeWorkspaceSize
+                height: root.activeWorkspaceSize
+                radius: root.activeWorkspaceSize / 2
                 hover: mouseArea.containsMouse
                 press: mouseArea.containsPress
                 drag: true
@@ -100,7 +106,7 @@ Item {
                 iconSize: root.workspaceButtonWidth * 0.50
                 color: specialSlot.active
                     ? Appearance.colors.colOnPrimary
-                    : Appearance.colors.colOnLayer1
+                    : (root.contentColorOverridden ? root.contentColor : Appearance.colors.colOnLayer1)
                 opacity: specialSlot.exists || specialSlot.active ? 1 : 0.55
                 text: specialSlot.iconName
 
@@ -115,7 +121,7 @@ Item {
             MouseArea {
                 id: mouseArea
                 anchors.fill: parent
-                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                acceptedButtons: Qt.LeftButton
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
 
