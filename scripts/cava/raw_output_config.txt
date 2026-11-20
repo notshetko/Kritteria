@@ -5,13 +5,13 @@ bars = 50
 
 [input]
 method = pulse
-source = auto
+source = alsa_output.usb-C-Media_Electronics_Inc._USB_Audio_Device-00.analog-stereo.monitor
 
 [output]
 method = raw
 raw_target = /dev/stdout
 data_format = ascii
-ascii_max_range = 100
+ascii_max_range = 1000
 channels = mono
 mono_option = average
 
