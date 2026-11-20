@@ -491,20 +491,51 @@ AbstractBackgroundWidget {
             }
         }
 
-        Text {
+        Item {
+            id: lyricStatus
             anchors.centerIn: parent
-            width: parent.width * 0.72
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.Wrap
+            width: Math.min(parent.width * 0.82, 440)
+            height: statusLabel.implicitHeight + 34
             visible: LyricsService.lyricsLines.length === 0
-            text: LyricsService.activePlayer
-                ? (LyricsService.status === "error" ? "No se encontraron letras para esta canción" : "Buscando letras…")
-                : "Lyrica está lista · reproduce música para comenzar"
-            color: root.lyricColor
-            font.family: root.lyricFont
-            font.pixelSize: 19
-            font.weight: Font.Medium
-            opacity: 0.82
+            z: 40
+
+            Rectangle {
+                anchors.fill: parent
+                radius: height / 2
+                color: "#171522"
+                opacity: 0.88
+                border.width: 1
+                border.color: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.42)
+            }
+            Rectangle {
+                width: 7
+                height: 7
+                radius: 4
+                anchors.left: parent.left
+                anchors.leftMargin: 17
+                anchors.verticalCenter: parent.verticalCenter
+                color: root.accentColor
+                opacity: 0.95
+            }
+            Text {
+                id: statusLabel
+                anchors.fill: parent
+                anchors.leftMargin: 34
+                anchors.rightMargin: 18
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.Wrap
+                text: LyricsService.activePlayer
+                    ? (LyricsService.status === "error" ? "No se encontraron letras para esta canción" : "Buscando letras…")
+                    : "Lyrica está lista · reproduce música para comenzar"
+                color: "#F7F4FF"
+                font.family: root.lyricFont
+                font.pixelSize: 18
+                font.weight: Font.DemiBold
+                style: Text.Outline
+                styleColor: "#171522"
+                opacity: 1
+            }
         }
 
         Column {
@@ -586,12 +617,20 @@ AbstractBackgroundWidget {
                     readonly property var measuredWordPoint: {
                         const lineLeft = (romanizedMain.width - timedLineMetrics.width) / 2
                         const localX = lineLeft + wordPrefixMetrics.width + activeWordMetrics.width * root.activeWordProgress
-                        // Place the marker over the glyph tops, then add a small hop on each word transition.
                         const localY = Math.max(5, romanizedMain.height * 0.30) - Math.sin(root.activeWordProgress * Math.PI) * 1.8 - root.karaokeHop * 5.5
                         return romanizedMain.mapToItem(row, localX, localY)
                     }
+                    // In wave mode, the karaoke marker follows the same per-glyph displacement
+                    // as the character currently under the marker instead of crossing the static baseline.
+                    readonly property int waveBallGlyphIndex: Math.max(0, Math.min((row.displayText || "").length - 1,
+                        root.wordPrefixText(row.displayText, row.timedWords, root.activeWordIndex).length
+                        + Math.floor(root.wordSliceText(row.displayText, row.timedWords, root.activeWordIndex).length * root.activeWordProgress)))
+                    readonly property real waveBallOffset: root.waveLettersEnabled && row.current
+                        ? Math.sin(root.shimmer * root.waveSpeed + row.waveBallGlyphIndex * 0.58) * root.waveIntensity * 8
+                            - root.lyricBounce * 12
+                        : 0
                     readonly property real measuredWordX: row.measuredWordPoint.x
-                    readonly property real measuredWordY: row.measuredWordPoint.y
+                    readonly property real measuredWordY: row.measuredWordPoint.y + row.waveBallOffset
                     Rectangle {
                         z: 80
                         visible: root.karaokeBallEnabled && row.current && !row.hanOnlyText && root.activeLineWordSynced && row.wordGeometryValid && root.activeWordIndex >= 0 && !root.instrumentalNow
