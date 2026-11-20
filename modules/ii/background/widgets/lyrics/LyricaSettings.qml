@@ -43,101 +43,8 @@ Rectangle {
         root.configEntry.enableKaraokeBall = true
     }
 
-    component StudioSlider: Item {
-        id: slider
-        property real from: 0
-        property real to: 1
-        property real value: 0
-        property real stepSize: 0.01
-        property color accent: "#a9baff"
-        signal moved(real nextValue)
-        implicitHeight: 30
-        implicitWidth: 180
-        readonly property real normalized: Math.max(0, Math.min(1, (value - from) / Math.max(0.0001, to - from)))
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            height: 5
-            radius: 3
-            color: "#394258"
-            Rectangle {
-                width: parent.width * slider.normalized
-                height: parent.height
-                radius: parent.radius
-                color: slider.accent
-            }
-        }
-        Rectangle {
-            width: 17
-            height: 17
-            radius: 9
-            x: Math.max(0, Math.min(parent.width - width, slider.normalized * parent.width - width / 2))
-            anchors.verticalCenter: parent.verticalCenter
-            color: "#f5f6ff"
-            border.width: 3
-            border.color: slider.accent
-        }
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            preventStealing: true
-            cursorShape: pressed ? Qt.ClosedHandCursor : Qt.PointingHandCursor
-            function updateValue(mouseX) {
-                const raw = slider.from + Math.max(0, Math.min(1, mouseX / Math.max(1, width))) * (slider.to - slider.from)
-                const stepped = slider.from + Math.round((raw - slider.from) / Math.max(0.000001, slider.stepSize)) * slider.stepSize
-                slider.moved(Math.max(slider.from, Math.min(slider.to, stepped)))
-            }
-            onPressed: mouse => updateValue(mouse.x)
-            onPositionChanged: mouse => { if (pressed) updateValue(mouse.x) }
-        }
-    }
 
 
-    component SectionHeading: Column {
-        required property string heading
-        required property string description
-        width: parent.width
-        spacing: 4
-        Text {
-            text: parent.heading
-            color: "#f5f6ff"
-            font.pixelSize: 16
-            font.weight: Font.DemiBold
-        }
-        Text {
-            text: parent.description
-            color: "#aeb7ce"
-            font.pixelSize: 12
-            wrapMode: Text.Wrap
-            width: parent.width
-        }
-    }
-
-    component SettingRow: Row {
-        required property string label
-        property string valueText: ""
-        width: parent.width
-        spacing: 8
-        Text {
-            text: parent.label
-            color: "#e7eaf6"
-            font.pixelSize: 13
-            font.weight: Font.Medium
-            width: parent.width - 70
-            anchors.verticalCenter: parent.verticalCenter
-        }
-        Text {
-            text: parent.valueText
-            color: root.accent
-            font.pixelSize: 12
-            font.weight: Font.DemiBold
-            anchors.verticalCenter: parent.verticalCenter
-            horizontalAlignment: Text.AlignRight
-            width: 62
-        }
-    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -233,15 +140,16 @@ Rectangle {
                     id: typography
                     width: parent.width
                     spacing: 13
-                    SectionHeading {
+                    LyricaSectionHeading {
                         heading: "Presencia tipográfica"
                         description: "Ajusta el peso de la línea enfocada y el color que acompaña a la canción."
                     }
-                    SettingRow {
+                    LyricaSettingRow {
                         label: "Grosor de la línea principal"
                         valueText: String(Math.round(Number(root.value("lyricFontWeight", 750))))
+                        accent: root.accent
                     }
-                    StudioSlider {
+                    LyricaStudioSlider {
                         width: parent.width
                         from: 400; to: 900; stepSize: 50
                         value: Number(root.value("lyricFontWeight", 750))
@@ -328,7 +236,7 @@ Rectangle {
                     id: motion
                     width: parent.width
                     spacing: 13
-                    SectionHeading {
+                    LyricaSectionHeading {
                         heading: "Respuesta al sonido"
                         description: "La línea principal sigue la energía grave y los golpes del ritmo, con ataque rápido y caída suave."
                     }
@@ -338,11 +246,12 @@ Rectangle {
                         Text { text: "Rebote musical"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
                         LyricaStudioToggle { checked: root.value("enableBounce", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBounce = next }
                     }
-                    SettingRow {
+                    LyricaSettingRow {
                         label: "Intensidad del rebote"
                         valueText: Math.round(Number(root.value("bounceIntensity", 1.6)) * 100) + "%"
+                        accent: root.accent
                     }
-                    StudioSlider {
+                    LyricaStudioSlider {
                         width: parent.width
                         from: 0.5; to: 2.5; stepSize: 0.05
                         value: Number(root.value("bounceIntensity", 1.6))
@@ -356,22 +265,24 @@ Rectangle {
                         Text { text: "Onda serpenteante"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
                         LyricaStudioToggle { checked: root.value("enableWaveLetters", false); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableWaveLetters = next }
                     }
-                    SettingRow {
+                    LyricaSettingRow {
                         label: "Intensidad de onda"
                         valueText: Math.round(Number(root.value("waveIntensity", 0.38)) * 100) + "%"
+                        accent: root.accent
                     }
-                    StudioSlider {
+                    LyricaStudioSlider {
                         width: parent.width
                         from: 0; to: 1; stepSize: 0.025
                         value: Number(root.value("waveIntensity", 0.38))
                         accent: root.accent
                         onMoved: next => root.configEntry.waveIntensity = next
                     }
-                    SettingRow {
+                    LyricaSettingRow {
                         label: "Velocidad de onda"
                         valueText: Number(root.value("waveSpeed", 1.0)).toFixed(2) + "×"
+                        accent: root.accent
                     }
-                    StudioSlider {
+                    LyricaStudioSlider {
                         width: parent.width
                         from: 0.25; to: 2.0; stepSize: 0.05
                         value: Number(root.value("waveSpeed", 1.0))
@@ -391,7 +302,7 @@ Rectangle {
                     id: ambience
                     width: parent.width
                     spacing: 13
-                    SectionHeading {
+                    LyricaSectionHeading {
                         heading: "Escenario ambiental"
                         description: "Modifica el ambiente sin reducir el contraste ni la legibilidad de las letras."
                     }
@@ -401,11 +312,12 @@ Rectangle {
                         Text { text: "Nube de fondo"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
                         LyricaStudioToggle { checked: root.value("enableBackground", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBackground = next }
                     }
-                    SettingRow {
+                    LyricaSettingRow {
                         label: "Opacidad de la nube"
                         valueText: Math.round(Number(root.value("cloudOpacity", 0.42)) * 100) + "%"
+                        accent: root.accent
                     }
-                    StudioSlider {
+                    LyricaStudioSlider {
                         width: parent.width
                         from: 0; to: 1; stepSize: 0.025
                         value: Number(root.value("cloudOpacity", 0.42))
