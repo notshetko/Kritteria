@@ -25,16 +25,6 @@ Rectangle {
         return v === undefined || v === null ? fallback : v
     }
 
-    component SectionTitle: Label {
-        Layout.fillWidth: true
-        color: root.accent
-        font.pixelSize: 10
-        font.weight: Font.Bold
-        font.letterSpacing: 1.35
-        topPadding: 7
-        bottomPadding: 2
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 18
@@ -68,7 +58,16 @@ Rectangle {
                 width: parent.width
                 spacing: 12
 
-                SectionTitle { text: "APARIENCIA" }
+                Label {
+                    text: "APARIENCIA"
+                    Layout.fillWidth: true
+                    color: root.accent
+                    font.pixelSize: 10
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.35
+                    topPadding: 7
+                    bottomPadding: 2
+                }
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: "Color de acento"; color: "#f5f1fb"; font.pixelSize: 12; Layout.fillWidth: true }
@@ -91,7 +90,16 @@ Rectangle {
                     }
                 }
 
-                SectionTitle { text: "MOVIMIENTO" }
+                Label {
+                    text: "MOVIMIENTO"
+                    Layout.fillWidth: true
+                    color: root.accent
+                    font.pixelSize: 10
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.35
+                    topPadding: 7
+                    bottomPadding: 2
+                }
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: "Reacción al audio"; color: "#f5f1fb"; font.pixelSize: 12; Layout.fillWidth: true }
@@ -138,7 +146,16 @@ Rectangle {
                     enabled: root.value("enableWaveLetters",true)
                 }
 
-                SectionTitle { text: "LETRAS Y KARAOKE" }
+                Label {
+                    text: "LETRAS Y KARAOKE"
+                    Layout.fillWidth: true
+                    color: root.accent
+                    font.pixelSize: 10
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.35
+                    topPadding: 7
+                    bottomPadding: 2
+                }
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: "Bola de seguimiento"; color: "#f5f1fb"; font.pixelSize: 12; Layout.fillWidth: true }
@@ -150,7 +167,16 @@ Rectangle {
                     Switch { checked: root.value("showSource",true); onToggled: root.configEntry.showSource = checked }
                 }
 
-                SectionTitle { text: "AMBIENTE" }
+                Label {
+                    text: "AMBIENTE"
+                    Layout.fillWidth: true
+                    color: root.accent
+                    font.pixelSize: 10
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.35
+                    topPadding: 7
+                    bottomPadding: 2
+                }
                 RowLayout {
                     Layout.fillWidth: true
                     Label { text: "Nube de fondo"; color: "#f5f1fb"; font.pixelSize: 12; Layout.fillWidth: true }
@@ -179,7 +205,16 @@ Rectangle {
                     Switch { checked: root.value("enableBlur",true); onToggled: root.configEntry.enableBlur = checked }
                 }
 
-                SectionTitle { text: "MANTENIMIENTO" }
+                Label {
+                    text: "MANTENIMIENTO"
+                    Layout.fillWidth: true
+                    color: root.accent
+                    font.pixelSize: 10
+                    font.weight: Font.Bold
+                    font.letterSpacing: 1.35
+                    topPadding: 7
+                    bottomPadding: 2
+                }
                 Label {
                     Layout.fillWidth: true
                     text: "Las letras descargadas se guardan en caché para acelerar los cambios de canción."
