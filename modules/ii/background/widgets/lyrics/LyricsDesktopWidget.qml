@@ -20,6 +20,9 @@ AbstractBackgroundWidget {
     configEntryName: "lyrics"
     needsColText: false
     hoverEnabled: true
+    // While Studio is open, let its controls receive pointer and keyboard input
+    // instead of allowing the desktop-widget drag handler to grab the interaction.
+    draggable: placementStrategy === "free" && !Config.options.background.widgetsLocked && !settingsOpen
 
     width: root.widgetWidth
     height: root.widgetHeight
