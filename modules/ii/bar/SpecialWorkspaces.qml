@@ -157,13 +157,16 @@ Item {
                 onClicked: mouse => {
                     if (mouse.button === Qt.RightButton) {
                         if ((mouse.modifiers & Qt.MetaModifier) !== 0) {
-                            // Remove the slot from the bar without closing its windows.
-                            const remaining = root.specialNames.filter(name => name !== specialSlot.modelData);
+                            // Capture delegate data before changing the model; removal can
+                            // destroy this delegate immediately.
+                            const workspaceName = specialSlot.modelData;
+                            const wasActive = specialSlot.active;
+                            const remaining = root.specialNames.filter(name => name !== workspaceName);
                             Config.options.bar.specialWorkspaces = remaining;
-                            if (specialSlot.active) {
+                            if (wasActive) {
                                 const command = Hyprland.usingLua
-                                    ? `hl.dsp.workspace.toggle_special('${specialSlot.modelData}')`
-                                    : `togglespecialworkspace ${specialSlot.modelData}`;
+                                    ? "hl.dsp.workspace.toggle_special('" + workspaceName + "')"
+                                    : "togglespecialworkspace " + workspaceName;
                                 Hyprland.dispatch(command);
                             }
                         } else if (specialSlot.active) {
