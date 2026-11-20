@@ -202,15 +202,22 @@ AbstractBackgroundWidget {
             // Use the shell visualizer's own smoothed bass bands and transient beat pulse.
             const levels = lyricAudioEngine.levels
             let lowBands = 0
-            for (let i = 0; i < 4; i++) lowBands += Number(levels[i] || 0) / 4
+            let spectrumMean = 0
+            let spectrumPeak = 0
+            for (let i = 0; i < levels.length; i++) {
+                const level = Math.max(0, Math.min(1, Number(levels[i] || 0)))
+                if (i < 4) lowBands += level / 4
+                spectrumMean += level / Math.max(1, levels.length)
+                spectrumPeak = Math.max(spectrumPeak, level)
+            }
             const beat = Math.max(0, Math.min(1, Number(lyricAudioEngine.bass || 0)))
-            const target = Math.max(0, Math.min(1, lowBands * 1.45 + beat * 1.35))
+            const target = Math.max(0, Math.min(1, lowBands * 1.25 + beat * 1.35 + spectrumMean * 0.35 + spectrumPeak * 0.12))
             root.audioTargetEnergy = target
-            const response = target > root.audioEnergy ? 0.62 : 0.13
+            const response = target > root.audioEnergy ? 0.68 : 0.12
             root.audioEnergy += (target - root.audioEnergy) * response
             root.beatPulse = Math.max(root.audioEnergy, beat)
             root.lyricBounce = root.bounceEnabled
-                ? Math.min(1, Math.pow(root.audioEnergy, 0.58) * root.bounceIntensity * 1.65)
+                ? Math.min(1.25, Math.pow(root.audioEnergy, 0.58) * root.bounceIntensity * 1.65)
                 : 0
             const active = LyricsService.activeIndex
             const line = active >= 0 ? LyricsService.lyricsLines[active] : null
@@ -749,10 +756,10 @@ AbstractBackgroundWidget {
                             Text {
                                 id: romanizedMain
                                 x: 0
-                                y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) - (row.current ? root.lyricBounce * 12 : 0)
+                                y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) - (row.current ? root.lyricBounce * 14 : 0)
                                 width: parent.width
                                 height: row.hanOnlyText ? Math.max(20, parent.height - 15) : parent.height
-                                scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.105 : 1
+                                scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.14 : 1
                                 transformOrigin: Item.Center
                                 layer.enabled: true
                                 layer.effect: MultiEffect {
@@ -798,6 +805,9 @@ AbstractBackgroundWidget {
                                 transformOrigin: Item.Center
                                 Row {
                                     anchors.centerIn: parent
+                                    width: implicitWidth
+                                    height: implicitHeight
+                                    scale: Math.min(1, parent.width / Math.max(1, implicitWidth))
                                     spacing: 0
                                     Repeater {
                                         model: Array.from(row.displayText || "")
