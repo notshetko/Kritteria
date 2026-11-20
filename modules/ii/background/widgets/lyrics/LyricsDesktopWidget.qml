@@ -715,7 +715,9 @@ AbstractBackgroundWidget {
                             }
                             Text {
                                 id: romanizedMain
-                                x: row.current && root.bounceEnabled ? Math.sin(root.shimmer * 0.7) * root.lyricBounce * 0.65 : 0
+                                // The glitch acts on this original Text node: tiny, restrained signal drift.
+                                x: (row.current && root.bounceEnabled ? Math.sin(root.shimmer * 0.7) * root.lyricBounce * 0.65 : 0)
+                                    + (root.glitchEnabled && row.dist === 3 ? Math.round(Math.sin(root.shimmer * 18 + row.index * 2.7) * 1.15) : 0)
                                 y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) - (row.current ? root.lyricBounce * 2 : 0)
                                 width: parent.width
                                 height: row.hanOnlyText ? Math.max(20, parent.height - 15) : parent.height
@@ -745,7 +747,9 @@ AbstractBackgroundWidget {
                                 maximumLineCount: 2
                                 fontSizeMode: Text.Fit
                                 minimumPixelSize: 11
-                                opacity: root.waveLettersEnabled && row.current ? 0 : (root.instrumentalNow ? 0.09 : row.fade * row.lyricFade)
+                                opacity: root.waveLettersEnabled && row.current ? 0
+                                    : (root.instrumentalNow ? 0.09 : row.fade * root.lyricFade
+                                        * (root.glitchEnabled && row.dist === 3 ? 0.78 + Math.sin(root.shimmer * 11 + row.index) * 0.045 : 1))
                                 style: Text.Outline
                                 // Subtle +2% outline weight/intensity, keeping the existing look.
                                 styleColor: Qt.rgba(Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).r, Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).g, Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).b, 0.98)
@@ -833,73 +837,8 @@ AbstractBackgroundWidget {
                             }
 
 
-                            // Multi-layer signal breakup: chromatic ghosts, sliced scan bands,
-                            // pixel blocks and short horizontal sync tears. Kept on the distant row.
-                            Item {
-                                z: 22
-                                anchors.fill: romanizedMain
-                                visible: root.glitchEnabled && row.dist === 3 && row.lyricText.length > 0 && !root.instrumentalNow && !root.songDone
-                                clip: true
+                            // No overlay copies: the distant lyric's own Text node carries the subtle glitch.
 
-                                // Full-frame chromatic ghosts only flare during a glitch burst.
-                                Text {
-                                    z: 1
-                                    width: parent.width
-                                    height: parent.height
-                                    text: row.displayText
-                                    font: romanizedMain.font
-                                    horizontalAlignment: romanizedMain.horizontalAlignment
-                                    verticalAlignment: romanizedMain.verticalAlignment
-                                    color: "#ff4fb8"
-                                    // Hard, frame-like jumps instead of smooth drifting.
-                                    x: Math.round(Math.sin(root.shimmer * 29 + row.index * 7) * 7)
-                                    opacity: Math.sin(root.shimmer * 31 + row.index * 11) > 0.78 ? 0.92 : 0
-                                }
-                                Text {
-                                    z: 2
-                                    width: parent.width
-                                    height: parent.height
-                                    text: row.displayText
-                                    font: romanizedMain.font
-                                    horizontalAlignment: romanizedMain.horizontalAlignment
-                                    verticalAlignment: romanizedMain.verticalAlignment
-                                    color: "#5cf6ff"
-                                    x: Math.round(Math.cos(root.shimmer * 33 + row.index * 5) * 8)
-                                    opacity: Math.sin(root.shimmer * 27 + row.index * 13 + 1.2) > 0.80 ? 0.88 : 0
-                                }
-
-                                // Thin horizontal slices move independently, like damaged video sync.
-                                Repeater {
-                                    model: 4
-                                    delegate: Item {
-                                        required property int index
-                                        readonly property real bandHeight: Math.max(3, romanizedMain.height * (0.045 + (index % 3) * 0.018))
-                                        x: 0
-                                        y: Math.round((parent.height - height) * (index / 3))
-                                        width: parent.width
-                                        height: bandHeight
-                                        clip: true
-                                        opacity: {
-                                            const pulse = Math.sin(root.shimmer * (30 + index * 3) + row.index * 7 + index * 11)
-                                            return pulse > 0.72 ? 1 : 0
-                                        }
-                                        Text {
-                                            text: row.displayText
-                                            font: romanizedMain.font
-                                            horizontalAlignment: romanizedMain.horizontalAlignment
-                                            verticalAlignment: romanizedMain.verticalAlignment
-                                            width: romanizedMain.width
-                                            height: romanizedMain.height
-                                            x: Math.round(Math.sin(root.shimmer * (34 + index * 4) + row.index * 3) * (8 + index * 2))
-                                            y: -parent.y + Math.round(Math.cos(root.shimmer * 31 + index * 9) * 3)
-                                            color: index % 3 === 0 ? "#ff4fb8" : index % 3 === 1 ? "#5cf6ff" : "#f7f5ff"
-                                            opacity: 1
-                                        }
-                                    }
-                                }
-
-                                // Removed free-floating bars: the glitch is now clipped to glyph shapes only.
-                            }
                         }
                     }
                 }
