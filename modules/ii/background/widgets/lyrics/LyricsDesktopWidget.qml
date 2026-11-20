@@ -30,7 +30,9 @@ AbstractBackgroundWidget {
     property real resizeStartWidth: -1
     property real shimmer: 0
     property real beatPulse: 0
-    property real audioEnergy: 0.08
+    property real audioEnergy: 0.04
+    property real audioTargetEnergy: 0
+    property real lineProgress: 0
     property real lyricBounce: 0
     property bool songDone: false
     property bool settingsOpen: false
@@ -48,6 +50,8 @@ AbstractBackgroundWidget {
     readonly property bool glitchEnabled: configEntry.enableGlitch ?? true
     readonly property bool particlesEnabled: configEntry.enableParticles ?? true
     readonly property bool karaokeBallEnabled: configEntry.enableKaraokeBall ?? true
+    readonly property bool waveLettersEnabled: configEntry.enableWaveLetters ?? true
+    readonly property real bounceIntensity: Math.max(0, Math.min(2.5, Number(configEntry.bounceIntensity ?? 1)))
     readonly property real rowHeight: Math.max(44, Math.min(90, (root.height - 30) / 7))
     onActiveWordIndexChanged: {
         if (root.karaokeBallEnabled && root.activeWordIndex >= 0)
@@ -166,26 +170,7 @@ AbstractBackgroundWidget {
         command: ["bash", "-lc", "$HOME/.config/quickshell/end4-pC/scripts/lyrics/lyrics-runner.sh --clear-cache"]
     }
 
-    // Optional live spectrum from CAVA; gracefully falls back to a soft glow.
-    Process {
-        id: spectrumProcess
-        command: ["/usr/bin/cava", "-p", `${FileUtils.trimFileProtocol(Directories.scriptPath)}/cava/lyrics_output_config.txt`]
-        running: root.visible && LyricsService.playing
-        onRunningChanged: console.info("[CAVA/Lyrica] running=" + spectrumProcess.running)
-        onExited: (exitCode, exitStatus) => console.warn("[CAVA/Lyrica] exited code=" + exitCode + " status=" + exitStatus)
-        stderr: SplitParser {
-            onRead: data => console.warn("[CAVA/Lyrica] " + data)
-        }
-        stdout: SplitParser {
-            onRead: data => {
-                const values = String(data).trim().split(/[;,\s]+/).map(v => Number(v)).filter(v => Number.isFinite(v))
-                if (values.length) {
-                    const normalized = values.map(v => Math.max(0, Math.min(1, v / 100)))
-                    root.audioEnergy = Math.max(0.04, Math.min(1, normalized.reduce((a, b) => a + b, 0) / normalized.length * 1.7))
-                }
-            }
-        }
-    }
+
 
     // Keep the widget available as soon as lyrics arrive, not only after the first timestamp.
     visible: !!LyricsService.activePlayer && LyricsService.status === "ok" && LyricsService.synced && LyricsService.lyricsLines.length > 0
@@ -205,10 +190,17 @@ AbstractBackgroundWidget {
         running: root.visible
         onTriggered: {
             root.shimmer = root.shimmer + 0.013
-            root.audioEnergy = Math.max(0.04, root.audioEnergy * 0.9925)
+            // Fast attack, gentle release. No hard threshold: quiet passages still produce visible motion.
+            const response = root.audioTargetEnergy > root.audioEnergy ? 0.34 : 0.075
+            root.audioEnergy += (root.audioTargetEnergy - root.audioEnergy) * response
             root.beatPulse = root.audioEnergy
-            // Subtle, music-reactive motion: lyrics lead the cloud, but never jump.
-            root.lyricBounce = root.bounceEnabled ? Math.max(0, Math.min(1, (root.audioEnergy - 0.22) * 0.85)) : 0
+            root.lyricBounce = root.bounceEnabled ? Math.min(1, root.audioEnergy * root.bounceIntensity) : 0
+            const active = LyricsService.activeIndex
+            const line = active >= 0 ? LyricsService.lyricsLines[active] : null
+            const next = active >= 0 ? LyricsService.lyricsLines[active + 1] : null
+            const start = Number(line?.time ?? 0)
+            const end = Number(next?.time ?? (start + 4))
+            root.lineProgress = end > start ? Math.max(0, Math.min(1, (LyricsService.currentPosition() - start) / (end - start))) : 0
             const idx = LyricsService.activeIndex
             const lines = LyricsService.lyricsLines
             const now = LyricsService.currentPosition()
@@ -727,7 +719,8 @@ AbstractBackgroundWidget {
                                 y: row.hanOnlyText ? 0 : (parent.height - height) / 2
                                 width: parent.width
                                 height: row.hanOnlyText ? Math.max(20, parent.height - 15) : parent.height
-                                scale: root.bounceEnabled ? 1 + Math.max(0, root.lyricBounce) * 0.006 + root.audioEnergy * 0.003 : 1
+                                scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.022 : 1
+                                y: row.current && root.waveLettersEnabled ? Math.sin(root.shimmer * Number(root.configEntry.waveSpeed ?? 0.75) + row.index * 0.7) * Number(root.configEntry.waveIntensity ?? 0.35) * 1.7 : 0
                                 transformOrigin: Item.Center
                                 layer.enabled: true
                                 layer.effect: MultiEffect {
@@ -761,6 +754,23 @@ AbstractBackgroundWidget {
                                 Behavior on color { ColorAnimation { duration: 360 } }
                                 Behavior on font.pixelSize { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                             }
+                            Item {
+                                visible: row.current && !root.instrumentalNow && !root.songDone
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                anchors.top: romanizedMain.bottom
+                                anchors.topMargin: 2
+                                width: Math.min(parent.width * 0.42, 280)
+                                height: 3
+                                Rectangle { anchors.fill: parent; radius: 2; color: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.16) }
+                                Rectangle {
+                                    width: parent.width * root.lineProgress
+                                    height: parent.height
+                                    radius: 2
+                                    color: root.accentColor
+                                    opacity: 0.82
+                                    Behavior on width { NumberAnimation { duration: 90; easing.type: Easing.Linear } }
+                                }
+                            }
                             Text {
                                 id: chinesePinyin
                                 visible: row.hanOnlyText && row.hasRomanization && row.romanizedText !== row.lyricText && !root.instrumentalNow
@@ -780,24 +790,7 @@ AbstractBackgroundWidget {
                                 verticalAlignment: Text.AlignVCenter
                                 opacity: 0.64 * row.lyricFade
                             }
-                            Text {
-                                id: karaokeHighlight
-                                anchors.fill: romanizedMain
-                                visible: row.current && !row.hanOnlyText && root.activeLineWordSynced && row.wordGeometryValid && root.activeWordIndex >= 0 && !root.instrumentalNow
-                                textFormat: Text.RichText
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                elide: Text.ElideRight
-                                maximumLineCount: 1
-                                font: romanizedMain.font
-                                color: root.lyricColor
-                                text: {
-                                    const line = LyricsService.activeIndex >= 0 ? LyricsService.lyricsLines[LyricsService.activeIndex] : null
-                                    const words = line && line.words ? line.words : []
-                                    if (!words.length || !row.hasRomanization || row.hanOnlyText) return ""
-                                    return root.highlightedLyricHtml(row.displayText, words, root.activeWordIndex, root.accentColor)
-                                }
-                            }
+
 
                             // Continuous, faint RGB split on the outermost visible rows (4th above/below focus).
                             // These overlays live inside the rotated lyric Column, so wheel tilt is inherited exactly.
