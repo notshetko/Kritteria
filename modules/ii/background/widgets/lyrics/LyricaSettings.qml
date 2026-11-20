@@ -26,7 +26,6 @@ Rectangle {
     }
 
     component SectionTitle: Label {
-        required property string text
         Layout.fillWidth: true
         color: root.accent
         font.pixelSize: 10
@@ -34,21 +33,6 @@ Rectangle {
         font.letterSpacing: 1.35
         topPadding: 7
         bottomPadding: 2
-    }
-
-    component SettingRow: RowLayout {
-        required property string title
-        required property string description
-        Layout.fillWidth: true
-        spacing: 12
-        ColumnLayout {
-            Layout.fillWidth: true
-            spacing: 2
-            Label { text: parent.parent.title; color: "#f5f1fb"; font.pixelSize: 13; font.weight: Font.Medium }
-            Label { text: parent.parent.description; color: "#a9a1b8"; font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true }
-        }
-        default property alias control: slot.data
-        Item { id: slot; implicitWidth: childrenRect.width; implicitHeight: childrenRect.height }
     }
 
     ColumnLayout {
