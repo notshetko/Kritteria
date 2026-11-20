@@ -10,9 +10,15 @@ import Quickshell.Bluetooth
 AndroidQuickToggleButton {
     id: root
 
-    // This tile is the entry point to the nearby-device list.
-    // A normal click must open the dialog instead of only toggling the adapter.
-    toggleModel: BluetoothToggle {
-        mainAction: () => root.openMenu()
+    // Bypass the nested toggle -> delegate chooser -> panel signal chain.
+    // SidebarRightContent already listens to this global request signal.
+    function requestDeviceDialog() {
+        GlobalStates.requestBluetoothDialog();
     }
+
+    toggleModel: BluetoothToggle {
+        mainAction: () => root.requestDeviceDialog()
+    }
+
+    onOpenMenu: root.requestDeviceDialog()
 }
