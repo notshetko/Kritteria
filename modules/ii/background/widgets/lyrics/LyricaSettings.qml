@@ -19,7 +19,7 @@ Rectangle {
     property bool enableKaraokeBall: true
     property bool enableWaveLetters: false
     property real bounceIntensity: 0.55
-    property int lyricFontWeight: 750
+    property real lyricFontWeight: 750
     property real waveIntensity: 0.38
     property real waveSpeed: 1.0
     property real cloudOpacity: 0.42
@@ -160,7 +160,7 @@ Rectangle {
                     LyricaStudioSlider {
                         id: fontWeightSlider
                         width: parent.width
-                        from: 400; to: 900; stepSize: 50
+                        from: 400; to: 900; stepSize: 0; snapMode: Slider.NoSnap
                         value: Number(root.lyricFontWeight)
                         accent: root.accent
                         onMoved: root.setValue("lyricFontWeight", fontWeightSlider.value)
@@ -180,7 +180,8 @@ Rectangle {
                                 color: "#f6f7ff"
                                 font.family: Appearance.font.family.main
                                 font.pixelSize: 20
-                                font.weight: Number(root.lyricFontWeight)
+                                font.weight: Math.round(Number(root.lyricFontWeight))
+                                font.variableAxes: ({ "wght": Number(root.lyricFontWeight) })
                             }
                             Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Vista previa en vivo"; color: "#aeb7ce"; font.pixelSize: 10 }
                         }
