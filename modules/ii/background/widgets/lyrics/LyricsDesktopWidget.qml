@@ -715,9 +715,7 @@ AbstractBackgroundWidget {
                             }
                             Text {
                                 id: romanizedMain
-                                // The glitch acts on this original Text node: tiny, restrained signal drift.
-                                x: (row.current && root.bounceEnabled ? Math.sin(root.shimmer * 0.7) * root.lyricBounce * 0.65 : 0)
-                                    + (root.glitchEnabled && row.dist === 3 ? Math.round(Math.sin(root.shimmer * 18 + row.index * 2.7) * 1.15) : 0)
+                                x: row.current && root.bounceEnabled ? Math.sin(root.shimmer * 0.7) * root.lyricBounce * 0.65 : 0
                                 y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) - (row.current ? root.lyricBounce * 2 : 0)
                                 width: parent.width
                                 height: row.hanOnlyText ? Math.max(20, parent.height - 15) : parent.height
@@ -747,15 +745,50 @@ AbstractBackgroundWidget {
                                 maximumLineCount: 2
                                 fontSizeMode: Text.Fit
                                 minimumPixelSize: 11
-                                opacity: root.waveLettersEnabled && row.current ? 0
-                                    : (root.instrumentalNow ? 0.09 : row.fade * row.lyricFade
-                                        * (root.glitchEnabled && row.dist === 3 ? 0.78 + Math.sin(root.shimmer * 11 + row.index) * 0.045 : 1))
+                                opacity: (root.waveLettersEnabled && row.current) || (root.glitchEnabled && row.dist >= 2 && !row.hanOnlyText && !root.instrumentalNow && !root.songDone)
+                                    ? 0 : (root.instrumentalNow ? 0.09 : row.fade * row.lyricFade)
                                 style: Text.Outline
                                 // Subtle +2% outline weight/intensity, keeping the existing look.
                                 styleColor: Qt.rgba(Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).r, Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).g, Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).b, 0.98)
                                 Behavior on opacity { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                                 Behavior on color { ColorAnimation { duration: 360 } }
                                 Behavior on font.pixelSize { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+                            }
+                            // Render each glyph exactly once for the distant rows. The original Text
+                            // remains measurement-only while this layer applies small, local signal tears.
+                            Item {
+                                id: glitchGlyphLayer
+                                visible: root.glitchEnabled && row.dist >= 2 && !row.hanOnlyText && !root.instrumentalNow && !root.songDone
+                                x: 0
+                                y: romanizedMain.y
+                                width: parent.width
+                                height: romanizedMain.height
+                                scale: romanizedMain.scale
+                                transformOrigin: Item.Center
+                                Row {
+                                    anchors.centerIn: parent
+                                    width: implicitWidth
+                                    height: implicitHeight
+                                    scale: Math.min(1, parent.width / Math.max(1, implicitWidth))
+                                    spacing: 0
+                                    Repeater {
+                                        model: Array.from(row.displayText || "")
+                                        delegate: Text {
+                                            required property int index
+                                            required property string modelData
+                                            readonly property real pulse: Math.max(0, Math.sin(root.shimmer * 7.2 + index * 1.91 + row.index * 2.3))
+                                            text: modelData === " " ? "\\u00a0" : modelData
+                                            font: romanizedMain.font
+                                            color: pulse > 0.84 ? (index % 2 === 0 ? "#ff78c8" : "#75eaff") : romanizedMain.color
+                                            style: Text.Outline
+                                            styleColor: romanizedMain.styleColor
+                                            transform: Translate {
+                                                x: pulse > 0.76 ? Math.sin(root.shimmer * 19 + index * 3.1) * 3.2 : 0
+                                                y: pulse > 0.88 ? Math.cos(root.shimmer * 17 + index * 2.4) * 2.0 : 0
+                                            }
+                                        }
+                                    }
+                                }
                             }
                             // In wave mode this Text is measurement-only; the Row is the sole visible renderer.
                             Item {
