@@ -85,7 +85,7 @@ AbstractBackgroundWidget {
         if (root.accentMode === "theme") return Appearance.colors.colPrimary ?? "#b7a1ff"
         const c = root.albumBaseColor
         const luminance = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722
-        return luminance < 0.40 ? Qt.lighter(c, 2.55) : luminance > 0.82 ? Qt.darker(c, 1.18) : Qt.lighter(c, 1.25)
+        return luminance < 0.40 ? Qt.lighter(c, 2.55) : luminance > 0.94 ? c : luminance > 0.82 ? Qt.darker(c, 1.18) : Qt.lighter(c, 1.25)
     }
     readonly property color accentColor: {
         const mode = root.accentMode
@@ -370,8 +370,10 @@ AbstractBackgroundWidget {
                     ctx.clearRect(0, 0, width, height)
                     ctx.drawImage(sourceUrl, 0, 0, width, height)
                     const data = ctx.getImageData(0, 0, width, height).data
-                    const bins = Array.from({length: 18}, () => ({score: 0, r: 0, g: 0, b: 0}))
-                    let chromaPixels = 0
+                    // 18 chromatic hue buckets plus one neutral bucket. Whites and greys
+                    // are real artwork colors too; don't discard them just because saturation is low.
+                    const bins = Array.from({length: 19}, () => ({score: 0, r: 0, g: 0, b: 0}))
+                    let sampledPixels = 0
 
                     for (let i = 0; i < data.length; i += 4) {
                         if (data[i + 3] < 128) continue
@@ -383,24 +385,28 @@ AbstractBackgroundWidget {
                         const delta = maxc - minc
                         const sat = maxc <= 0 ? 0 : delta / maxc
                         const lum = r * 0.2126 + g * 0.7152 + b * 0.0722
+                        if (lum < 0.035) continue
 
-                        // Ignore near-white/near-black noise, but retain muted album colors.
-                        if (sat < 0.075 || lum < 0.035 || lum > 0.985) continue
-                        let hue = 0
-                        if (delta > 0) {
-                            if (maxc === r) hue = ((g - b) / delta) % 6
-                            else if (maxc === g) hue = (b - r) / delta + 2
-                            else hue = (r - g) / delta + 4
-                            hue = (hue / 6 + 1) % 1
+                        let bucketIndex = 18
+                        let weight = 0.7 + lum * 0.65
+                        if (sat >= 0.075) {
+                            let hue = 0
+                            if (delta > 0) {
+                                if (maxc === r) hue = ((g - b) / delta) % 6
+                                else if (maxc === g) hue = (b - r) / delta + 2
+                                else hue = (r - g) / delta + 4
+                                hue = (hue / 6 + 1) % 1
+                            }
+                            bucketIndex = Math.min(17, Math.floor(hue * 18))
+                            weight = (0.25 + sat * 1.15) * (0.65 + 0.35 * (1 - Math.abs(lum - 0.55)))
                         }
 
-                        const bucket = bins[Math.min(17, Math.floor(hue * 18))]
-                        const weight = (0.25 + sat * 1.15) * (0.65 + 0.35 * (1 - Math.abs(lum - 0.55)))
+                        const bucket = bins[bucketIndex]
                         bucket.score += weight
                         bucket.r += r * weight
                         bucket.g += g * weight
                         bucket.b += b * weight
-                        chromaPixels++
+                        sampledPixels++
                     }
 
                     bins.sort((a, b) => b.score - a.score)
@@ -409,8 +415,8 @@ AbstractBackgroundWidget {
                         : null
 
                     const primary = toColor(bins[0])
-                    const secondary = toColor(bins.find((bucket, index) => index > 0 && bucket.score > bins[0].score * 0.10))
-                    if (primary && chromaPixels > 0) {
+                    const secondary = toColor(bins.find((bucket, index) => index !== bins.indexOf(bins[0]) && bucket.score > bins[0].score * 0.10))
+                    if (primary && sampledPixels > 0) {
                         root.albumBaseColor = primary
                         root.albumSecondaryColor = secondary || Qt.lighter(primary, 1.42)
                     }
@@ -845,8 +851,9 @@ AbstractBackgroundWidget {
                                     horizontalAlignment: romanizedMain.horizontalAlignment
                                     verticalAlignment: romanizedMain.verticalAlignment
                                     color: "#ff4fb8"
-                                    x: Math.sin(root.shimmer * 8.1 + row.index) * 5
-                                    opacity: Math.pow(Math.max(0, Math.sin(root.shimmer * 3.7 + row.index * 1.9)), 10) * 0.82
+                                    // Hard, frame-like jumps instead of smooth drifting.
+                                    x: Math.round(Math.sin(root.shimmer * 29 + row.index * 7) * 7)
+                                    opacity: Math.sin(root.shimmer * 31 + row.index * 11) > 0.78 ? 0.92 : 0
                                 }
                                 Text {
                                     z: 2
@@ -857,24 +864,24 @@ AbstractBackgroundWidget {
                                     horizontalAlignment: romanizedMain.horizontalAlignment
                                     verticalAlignment: romanizedMain.verticalAlignment
                                     color: "#5cf6ff"
-                                    x: Math.cos(root.shimmer * 7.3 + row.index * 0.6) * 6
-                                    opacity: Math.pow(Math.max(0, Math.sin(root.shimmer * 4.1 + row.index * 2.4 + 1.2)), 9) * 0.78
+                                    x: Math.round(Math.cos(root.shimmer * 33 + row.index * 5) * 8)
+                                    opacity: Math.sin(root.shimmer * 27 + row.index * 13 + 1.2) > 0.80 ? 0.88 : 0
                                 }
 
                                 // Thin horizontal slices move independently, like damaged video sync.
                                 Repeater {
-                                    model: 6
+                                    model: 4
                                     delegate: Item {
                                         required property int index
                                         readonly property real bandHeight: Math.max(3, romanizedMain.height * (0.045 + (index % 3) * 0.018))
                                         x: 0
-                                        y: (parent.height - height) * (index / 5)
+                                        y: Math.round((parent.height - height) * (index / 3))
                                         width: parent.width
                                         height: bandHeight
                                         clip: true
                                         opacity: {
-                                            const pulse = Math.sin(root.shimmer * (5.4 + index * 0.31) + row.index * 1.7 + index * 2.1)
-                                            return pulse > 0.52 ? Math.min(1, (pulse - 0.52) * 2.8) : 0
+                                            const pulse = Math.sin(root.shimmer * (30 + index * 3) + row.index * 7 + index * 11)
+                                            return pulse > 0.72 ? 1 : 0
                                         }
                                         Text {
                                             text: row.displayText
@@ -883,41 +890,15 @@ AbstractBackgroundWidget {
                                             verticalAlignment: romanizedMain.verticalAlignment
                                             width: romanizedMain.width
                                             height: romanizedMain.height
-                                            x: Math.sin(root.shimmer * (9.0 + index) + row.index) * (7 + index * 2)
-                                            y: -parent.y + Math.cos(root.shimmer * 6.2 + index * 1.8) * 2
+                                            x: Math.round(Math.sin(root.shimmer * (34 + index * 4) + row.index * 3) * (8 + index * 2))
+                                            y: -parent.y + Math.round(Math.cos(root.shimmer * 31 + index * 9) * 3)
                                             color: index % 3 === 0 ? "#ff4fb8" : index % 3 === 1 ? "#5cf6ff" : "#f7f5ff"
-                                            opacity: 0.92
+                                            opacity: 1
                                         }
                                     }
                                 }
 
-                                // Short data blocks and scanline cuts add hard, pixel-like interruptions.
-                                Repeater {
-                                    model: 7
-                                    delegate: Rectangle {
-                                        required property int index
-                                        readonly property real pulse: Math.sin(root.shimmer * (6.7 + index * 0.37) + row.index * 2.3 + index * 1.6)
-                                        x: Math.abs(Math.sin(row.index * 13.1 + index * 7.7 + root.shimmer * 2.6)) * Math.max(1, parent.width - width)
-                                        y: Math.abs(Math.cos(row.index * 4.3 + index * 5.1)) * Math.max(1, parent.height - height)
-                                        width: Math.max(5, parent.width * (0.035 + Math.abs(Math.sin(index * 8.2)) * 0.12))
-                                        height: index % 3 === 0 ? 4 : 2
-                                        color: index % 3 === 0 ? "#ff4fb8" : index % 3 === 1 ? "#5cf6ff" : "#f7f5ff"
-                                        opacity: pulse > 0.58 ? Math.min(0.95, (pulse - 0.58) * 2.9) : 0
-                                    }
-                                }
-
-                                // Brief white scan cuts, deliberately sparse so the lyric remains readable.
-                                Repeater {
-                                    model: 3
-                                    delegate: Rectangle {
-                                        required property int index
-                                        width: parent.width
-                                        height: 1
-                                        y: parent.height * (0.22 + index * 0.27)
-                                        color: "#eafcff"
-                                        opacity: Math.max(0, Math.sin(root.shimmer * 11.0 + row.index + index * 2.7) - 0.88) * 0.8
-                                    }
-                                }
+                                // Removed free-floating bars: the glitch is now clipped to glyph shapes only.
                             }
                         }
                     }
