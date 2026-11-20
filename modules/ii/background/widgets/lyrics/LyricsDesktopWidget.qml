@@ -1103,7 +1103,6 @@ AbstractBackgroundWidget {
         waveSpeed: root.waveSpeed
         cloudOpacity: root.cloudOpacity
         accentMode: root.accentMode
-        customAccentColor: root.customAccentColor
         onSettingChanged: (key, value) => root.applyStudioSetting(key, value)
     }
 
