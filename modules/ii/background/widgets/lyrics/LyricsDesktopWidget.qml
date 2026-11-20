@@ -11,6 +11,7 @@ import qs.modules.common
 import qs.modules.common.widgets
 import qs.modules.common.widgets.widgetCanvas
 import qs.modules.ii.background.widgets
+import qs.modules.ii.background.widgets.visualizer
 import qs.services
 
 // SekaiPop-inspired lyric wheel. Uses end4-pC's normal desktop-widget drag and resize behavior.
@@ -171,6 +172,13 @@ AbstractBackgroundWidget {
         command: ["bash", "-lc", "$HOME/.config/quickshell/end4-pC/scripts/lyrics/lyrics-runner.sh --clear-cache"]
     }
 
+    VisualizerEngine {
+        id: lyricAudioEngine
+        active: true
+        sensitivity: 1.0
+        maxValue: 1000
+    }
+
 
 
     // Reuse the shell's existing CAVA stream; no second process or separate parser.
@@ -191,24 +199,19 @@ AbstractBackgroundWidget {
         running: root.visible
         onTriggered: {
             root.shimmer = root.shimmer + 0.013
-            // Same 0..1000 stream used by the shell bar and desktop visualizer.
-            const points = GlobalStates.visualizerPoints || []
-            let bassSum = 0
-            let bassPeak = 0
-            const bassCount = Math.min(8, points.length)
-            for (let i = 0; i < bassCount; i++) {
-                const level = Math.max(0, Math.min(1, Number(points[i] || 0) / 1000))
-                bassSum += level
-                bassPeak = Math.max(bassPeak, level)
-            }
-            const bassMean = bassCount > 0 ? bassSum / bassCount : 0
-            const target = Math.max(0, Math.min(1, bassMean * 2.4 + bassPeak * 0.85))
+            // Use the shell visualizer's own smoothed bass bands and transient beat pulse.
+            const levels = lyricAudioEngine.levels
+            let lowBands = 0
+            for (let i = 0; i < 4; i++) lowBands += Number(levels[i] || 0) / 4
+            const beat = Math.max(0, Math.min(1, Number(lyricAudioEngine.bass || 0)))
+            const target = Math.max(0, Math.min(1, lowBands * 1.45 + beat * 1.35))
             root.audioTargetEnergy = target
-            // Fast attack and slower release keep the kick perceptible without jitter.
-            const response = target > root.audioEnergy ? 0.48 : 0.105
+            const response = target > root.audioEnergy ? 0.62 : 0.13
             root.audioEnergy += (target - root.audioEnergy) * response
-            root.beatPulse = root.audioEnergy
-            root.lyricBounce = root.bounceEnabled ? Math.min(1, Math.pow(root.audioEnergy, 0.65) * root.bounceIntensity * 1.5) : 0
+            root.beatPulse = Math.max(root.audioEnergy, beat)
+            root.lyricBounce = root.bounceEnabled
+                ? Math.min(1, Math.pow(root.audioEnergy, 0.58) * root.bounceIntensity * 1.65)
+                : 0
             const active = LyricsService.activeIndex
             const line = active >= 0 ? LyricsService.lyricsLines[active] : null
             const next = active >= 0 ? LyricsService.lyricsLines[active + 1] : null
@@ -746,7 +749,7 @@ AbstractBackgroundWidget {
                             Text {
                                 id: romanizedMain
                                 x: 0
-                                y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) + (row.current && root.waveLettersEnabled ? Math.sin(root.shimmer * Number(root.configEntry.waveSpeed ?? 0.75) + row.index * 0.7) * Number(root.configEntry.waveIntensity ?? 0.35) * 1.7 : 0) - (row.current ? root.lyricBounce * 10 : 0)
+                                y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) - (row.current ? root.lyricBounce * 12 : 0)
                                 width: parent.width
                                 height: row.hanOnlyText ? Math.max(20, parent.height - 15) : parent.height
                                 scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.105 : 1
@@ -775,13 +778,44 @@ AbstractBackgroundWidget {
                                 maximumLineCount: 2
                                 fontSizeMode: Text.Fit
                                 minimumPixelSize: 11
-                                opacity: root.instrumentalNow ? 0.09 : row.fade * row.lyricFade
+                                opacity: root.waveLettersEnabled && row.current ? 0 : (root.instrumentalNow ? 0.09 : row.fade * row.lyricFade)
                                 style: Text.Outline
                                 // Subtle +2% outline weight/intensity, keeping the existing look.
                                 styleColor: Qt.rgba(Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).r, Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).g, Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).b, 0.98)
                                 Behavior on opacity { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                                 Behavior on color { ColorAnimation { duration: 360 } }
                                 Behavior on font.pixelSize { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+                            }
+                            // In wave mode this Text is measurement-only; the Row is the sole visible renderer.
+                            Item {
+                                id: waveGlyphLayer
+                                visible: row.current && root.waveLettersEnabled && !root.instrumentalNow && !root.songDone
+                                x: 0
+                                y: romanizedMain.y
+                                width: parent.width
+                                height: romanizedMain.height
+                                scale: romanizedMain.scale
+                                transformOrigin: Item.Center
+                                Row {
+                                    anchors.centerIn: parent
+                                    spacing: 0
+                                    Repeater {
+                                        model: Array.from(row.displayText || "")
+                                        delegate: Text {
+                                            required property int index
+                                            required property string modelData
+                                            text: modelData === " " ? "\u00a0" : modelData
+                                            font: romanizedMain.font
+                                            color: romanizedMain.color
+                                            style: Text.Outline
+                                            styleColor: romanizedMain.styleColor
+                                            y: Math.sin(root.shimmer * Number(root.configEntry.waveSpeed ?? 1.0) + index * 0.58)
+                                                * Number(root.configEntry.waveIntensity ?? 0.38) * 8
+                                                - root.lyricBounce * 12
+                                            Behavior on y { NumberAnimation { duration: 80; easing.type: Easing.OutSine } }
+                                        }
+                                    }
+                                }
                             }
                             Item {
                                 visible: row.current && !root.instrumentalNow && !root.songDone
@@ -1035,7 +1069,7 @@ AbstractBackgroundWidget {
         z: 100
         configEntry: root.configEntry
         open: root.settingsOpen && !Config.options.background.widgetsLocked
-        accent: root.accentColor
+        accent: "#a9baff"
         surfaceColor: Appearance.colors.colSurfaceContainer ?? Appearance.colors.colLayer1 ?? "#281c38"
     }
 
