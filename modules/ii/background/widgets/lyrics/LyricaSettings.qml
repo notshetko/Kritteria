@@ -215,24 +215,19 @@ Rectangle {
                             anchors.margins: 10
                             spacing: 10
                             Text { text: "HEX"; color: "#aeb7ce"; anchors.verticalCenter: parent.verticalCenter; font.pixelSize: 11 }
-                            TextField {
+                            TextInput {
                                 id: customAccentField
                                 width: parent.width - 45
-                                height: 30
+                                height: 26
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: String(root.customAccentColor)
                                 color: "#f5f6ff"
                                 font.pixelSize: 13
+                                verticalAlignment: TextInput.AlignVCenter
                                 selectByMouse: true
                                 activeFocusOnPress: true
-                                focusPolicy: Qt.StrongFocus
-                                readOnly: false
-                                padding: 0
-                                leftPadding: 0
-                                rightPadding: 0
-                                background: Item {}
-                                placeholderText: "#RRGGBB"
-                                placeholderTextColor: "#78839c"
+                                cursorVisible: activeFocus
+                                clip: true
                                 onTextEdited: {
                                     if (/^#[0-9a-fA-F]{6}$/.test(text))
                                         root.setValue("customAccentColor", text)
