@@ -94,35 +94,6 @@ Rectangle {
         }
     }
 
-    component StudioToggle: Item {
-        id: toggle
-        property bool checked: false
-        property color accent: "#a9baff"
-        signal toggled(bool nextValue)
-        implicitWidth: 44
-        implicitHeight: 26
-        Rectangle {
-            anchors.fill: parent
-            radius: 13
-            color: toggle.checked ? "#6579b5" : "#3b4358"
-            border.width: 1
-            border.color: toggle.checked ? "#9eb0ef" : "#596178"
-            Rectangle {
-                width: 18
-                height: 18
-                radius: 9
-                y: 3
-                x: toggle.checked ? parent.width - width - 4 : 4
-                color: "#f6f7ff"
-                Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
-            }
-        }
-        MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: toggle.toggled(!toggle.checked)
-        }
-    }
 
     component SectionHeading: Column {
         required property string heading
@@ -342,7 +313,7 @@ Rectangle {
                         height: 32
                         spacing: 10
                         Text { text: "Bola de seguimiento karaoke"; color: "#e7eaf6"; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        StudioToggle { checked: root.value("enableKaraokeBall", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableKaraokeBall = next }
+                        LyricaStudioToggle { checked: root.value("enableKaraokeBall", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableKaraokeBall = next }
                     }
                 }
             }
@@ -365,7 +336,7 @@ Rectangle {
                         width: parent.width
                         height: 32
                         Text { text: "Rebote musical"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        StudioToggle { checked: root.value("enableBounce", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBounce = next }
+                        LyricaStudioToggle { checked: root.value("enableBounce", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBounce = next }
                     }
                     SettingRow {
                         label: "Intensidad del rebote"
@@ -383,7 +354,7 @@ Rectangle {
                         width: parent.width
                         height: 32
                         Text { text: "Onda serpenteante"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        StudioToggle { checked: root.value("enableWaveLetters", false); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableWaveLetters = next }
+                        LyricaStudioToggle { checked: root.value("enableWaveLetters", false); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableWaveLetters = next }
                     }
                     SettingRow {
                         label: "Intensidad de onda"
@@ -428,7 +399,7 @@ Rectangle {
                         width: parent.width
                         height: 32
                         Text { text: "Nube de fondo"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        StudioToggle { checked: root.value("enableBackground", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBackground = next }
+                        LyricaStudioToggle { checked: root.value("enableBackground", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBackground = next }
                     }
                     SettingRow {
                         label: "Opacidad de la nube"
@@ -445,13 +416,13 @@ Rectangle {
                         width: parent.width
                         height: 32
                         Text { text: "Partículas ambientales"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        StudioToggle { checked: root.value("enableParticles", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableParticles = next }
+                        LyricaStudioToggle { checked: root.value("enableParticles", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableParticles = next }
                     }
                     Row {
                         width: parent.width
                         height: 32
                         Text { text: "Desenfoque ambiental"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        StudioToggle { checked: root.value("enableBlur", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBlur = next }
+                        LyricaStudioToggle { checked: root.value("enableBlur", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBlur = next }
                     }
                     Rectangle { width: parent.width; height: 1; color: "#20ffffff" }
                     Text {
