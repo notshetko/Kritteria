@@ -95,13 +95,16 @@ Scope {
                 (Config.options.bar.dynamicIsland.visualizerStyle === "dots" && !Config.options.bar.dynamicIsland.showMediaControls))) ||
             Config.options.bar.layouts.rightLayout.includes("visualizer") ||
             Config.options.background.widgets.visualizer.enable)
-            && (MprisController.activePlayer?.isPlaying ?? false)
+            && MprisController.isPlaying
         onRunningChanged: {
             if (!cavaProc.running) {
                 GlobalStates.visualizerPoints = [];
             }
         }
-        command: ["cava", "-p", `${FileUtils.trimFileProtocol(Directories.scriptPath)}/cava/raw_output_config.txt`]
+        command: ["/usr/bin/cava", "-p", `${FileUtils.trimFileProtocol(Directories.scriptPath)}/cava/raw_output_config.txt`]
+        stderr: SplitParser {
+            onRead: data => console.warn(`[CAVA] ${data}`)
+        }
         stdout: SplitParser {
             onRead: data => {
                 let points = data.split(";").map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
