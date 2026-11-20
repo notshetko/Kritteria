@@ -392,7 +392,7 @@ AbstractBackgroundWidget {
             anchors.fill: parent
             visible: root.backgroundEnabled && status === ShaderEffect.Compiled && (LyricsService.playing || opacity > 0.01)
             // Transparent outside the central stylized cloud; never paint the widget bounds.
-            opacity: root.backgroundEnabled && LyricsService.playing ? Number(root.configEntry.cloudOpacity ?? 0.72) : 0
+            opacity: root.backgroundEnabled && LyricsService.playing ? Number(root.configEntry.cloudOpacity ?? 0.55) : 0
             fragmentShader: Qt.resolvedUrl("lyrics-cloud.frag.qsb")
             property real uTime: root.shimmer
             property real uEnergy: root.audioEnergy
@@ -764,13 +764,38 @@ AbstractBackgroundWidget {
                                 maximumLineCount: 2
                                 fontSizeMode: Text.Fit
                                 minimumPixelSize: 11
-                                opacity: root.instrumentalNow ? 0.09 : row.fade * row.lyricFade
+                                opacity: row.current && root.waveLettersEnabled ? 0 : (root.instrumentalNow ? 0.09 : row.fade * row.lyricFade)
                                 style: Text.Outline
                                 // Subtle +2% outline weight/intensity, keeping the existing look.
                                 styleColor: Qt.rgba(Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).r, Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).g, Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).b, 0.98)
                                 Behavior on opacity { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                                 Behavior on color { ColorAnimation { duration: 360 } }
                                 Behavior on font.pixelSize { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+                            }
+                            Item {
+                                visible: row.current && root.waveLettersEnabled && !root.instrumentalNow && !root.songDone
+                                anchors.fill: parent
+                                Row {
+                                    anchors.centerIn: parent
+                                    width: implicitWidth
+                                    height: parent.height
+                                    scale: Math.min(1, parent.width / Math.max(1, implicitWidth))
+                                    Repeater {
+                                        model: Array.from(row.displayText || "")
+                                        delegate: Text {
+                                            required property int index
+                                            required property string modelData
+                                            text: modelData
+                                            font: romanizedMain.font
+                                            color: romanizedMain.color
+                                            style: Text.Outline
+                                            styleColor: romanizedMain.styleColor
+                                            opacity: row.fade * row.lyricFade
+                                            y: Math.sin(root.shimmer * Number(root.configEntry.waveSpeed ?? 0.75) + index * 0.68) * Number(root.configEntry.waveIntensity ?? 0.35) * 5.2
+                                            Behavior on y { NumberAnimation { duration: 90; easing.type: Easing.OutSine } }
+                                        }
+                                    }
+                                }
                             }
                             Item {
                                 visible: row.current && !root.instrumentalNow && !root.songDone
