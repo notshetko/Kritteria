@@ -755,19 +755,27 @@ AbstractBackgroundWidget {
                             }
                             Text {
                                 id: romanizedMain
-                                x: 0
-                                y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) - (row.current ? root.lyricBounce * 14 : 0)
+                                x: row.current && root.bounceEnabled ? Math.sin(root.shimmer * 0.7) * root.lyricBounce * 2.2 : 0
+                                y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) - (row.current ? root.lyricBounce * 5 : 0)
                                 width: parent.width
                                 height: row.hanOnlyText ? Math.max(20, parent.height - 15) : parent.height
-                                scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.14 : 1
+                                scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.19 : 1
                                 transformOrigin: Item.Center
+                                transform: Rotation {
+                                    origin.x: romanizedMain.width / 2
+                                    origin.y: romanizedMain.height / 2
+                                    axis.x: 1
+                                    axis.y: 0
+                                    axis.z: 0
+                                    angle: row.current && root.bounceEnabled ? -root.lyricBounce * 8 : 0
+                                }
                                 layer.enabled: true
                                 layer.effect: MultiEffect {
                                     shadowEnabled: true
                                     shadowColor: root.shadowColor
-                                    shadowBlur: 0.306
+                                    shadowBlur: 0.306 + root.lyricBounce * 0.52
                                     shadowHorizontalOffset: 0
-                                    shadowVerticalOffset: 3 + root.audioEnergy * 0.15
+                                    shadowVerticalOffset: 3 + root.lyricBounce * 8
                                     shadowOpacity: 0.94
                                 }
                                 Behavior on y { NumberAnimation { duration: 95; easing.type: Easing.OutCubic } }
@@ -803,6 +811,14 @@ AbstractBackgroundWidget {
                                 height: romanizedMain.height
                                 scale: romanizedMain.scale
                                 transformOrigin: Item.Center
+                                transform: Rotation {
+                                    origin.x: waveGlyphLayer.width / 2
+                                    origin.y: waveGlyphLayer.height / 2
+                                    axis.x: 1
+                                    axis.y: 0
+                                    axis.z: 0
+                                    angle: row.current && root.bounceEnabled ? -root.lyricBounce * 8 : 0
+                                }
                                 Row {
                                     anchors.centerIn: parent
                                     width: implicitWidth
