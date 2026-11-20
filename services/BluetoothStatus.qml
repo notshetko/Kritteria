@@ -12,6 +12,10 @@ Singleton {
     readonly property bool available: Bluetooth.adapters.values.length > 0
     readonly property bool enabled: Bluetooth.defaultAdapter?.enabled ?? false
 
+    // Bluetooth.devices only contains connected devices across adapters.
+    // The adapter model also contains nearby devices found during discovery.
+    readonly property var adapterDevices: Bluetooth.defaultAdapter?.devices.values ?? []
+
     // BlueZ can leave Device1.Connected false when a device reconnects on its
     // own, while audio, AVRCP and battery reporting are all live
     // (https://github.com/bluez/bluez/issues/2485). Battery1 is only exported
@@ -20,9 +24,9 @@ Singleton {
         return !!device && (device.connected || device.batteryAvailable);
     }
 
-    readonly property BluetoothDevice firstActiveDevice: Bluetooth.devices.values.find(device => root.isConnected(device)) ?? null
-    readonly property int activeDeviceCount: Bluetooth.devices.values.filter(device => root.isConnected(device)).length
-    readonly property bool connected: Bluetooth.devices.values.some(d => root.isConnected(d))
+    readonly property BluetoothDevice firstActiveDevice: root.adapterDevices.find(device => root.isConnected(device)) ?? null
+    readonly property int activeDeviceCount: root.adapterDevices.filter(device => root.isConnected(device)).length
+    readonly property bool connected: root.adapterDevices.some(d => root.isConnected(d))
 
     function sortFunction(a, b) {
         // Ones with meaningful names before MAC addresses
@@ -35,9 +39,10 @@ Singleton {
         // Alphabetical by name
         return a.name.localeCompare(b.name);
     }
-    property list<var> connectedDevices: Bluetooth.devices.values.filter(d => root.isConnected(d)).sort(sortFunction)
-    property list<var> pairedButNotConnectedDevices: Bluetooth.devices.values.filter(d => d.paired && !root.isConnected(d)).sort(sortFunction)
-    property list<var> unpairedDevices: Bluetooth.devices.values.filter(d => !d.paired && !root.isConnected(d)).sort(sortFunction)
+
+    property list<var> connectedDevices: root.adapterDevices.filter(d => root.isConnected(d)).sort(sortFunction)
+    property list<var> pairedButNotConnectedDevices: root.adapterDevices.filter(d => d.paired && !root.isConnected(d)).sort(sortFunction)
+    property list<var> unpairedDevices: root.adapterDevices.filter(d => !d.paired && !root.isConnected(d)).sort(sortFunction)
     readonly property list<var> connectedBatteryDevices: connectedDevices.filter(device => device.batteryAvailable && Number.isFinite(Number(device.battery)))
     readonly property var primaryConnectedDevice: firstActiveDevice ?? connectedDevices[0] ?? null
     readonly property var primaryBatteryDevice: hasBattery(primaryConnectedDevice)
