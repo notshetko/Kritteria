@@ -63,7 +63,8 @@ AbstractBackgroundWidget {
         NumberAnimation { target: root; property: "karaokeHop"; to: 0; duration: 148; easing.type: Easing.InOutCubic }
     }
 
-    readonly property string lyricFont: "M PLUS Rounded 1c"
+    readonly property string lyricFont: "Inter"
+    readonly property int lyricFontWeight: Math.max(400, Math.min(900, Number(root.configEntry.lyricFontWeight ?? 700)))
     readonly property string albumArtUrl: String(LyricsService.activePlayer?.trackArtUrl ?? "")
     // Canvas samples the current MPRIS artwork into a tiny palette. Text and outlines follow the album,
     // with the outline always darker than the foreground for contrast. Material colors are fallback only.
@@ -172,29 +173,10 @@ AbstractBackgroundWidget {
 
 
 
-    // Audio analysis stays invisible: CAVA drives motion only, it does not render a spectrum.
-    Process {
-        id: audioAnalysisProcess
-        command: ["/usr/bin/cava", "-p", `${FileUtils.trimFileProtocol(Directories.scriptPath)}/cava/lyrics_output_config.txt`]
-        running: root.visible && LyricsService.playing
-        stderr: SplitParser { onRead: data => console.warn("[Lyrica audio] " + data) }
-        stdout: SplitParser {
-            onRead: data => {
-                const values = String(data).trim().split(/[;,\s]+/).map(v => Number(v)).filter(v => Number.isFinite(v))
-                if (values.length) {
-                    const normalized = values.map(v => Math.max(0, Math.min(1, v / 100)))
-                    const mean = normalized.reduce((a, b) => a + b, 0) / normalized.length
-                    const peak = Math.max(...normalized)
-                    root.audioTargetEnergy = Math.max(0, Math.min(1, (mean * 0.72 + peak * 0.28) * 2.15))
-                }
-            }
-        }
-    }
-
-    // Keep the widget available as soon as lyrics arrive, not only after the first timestamp.
-    visible: !!LyricsService.activePlayer && LyricsService.status === "ok" && LyricsService.synced && LyricsService.lyricsLines.length > 0
-    opacity: (LyricsService.playing || root.songDone) ? 1 : 0
-    Behavior on opacity { NumberAnimation { duration: 520; easing.type: Easing.OutCubic } }
+    // Reuse the shell's existing CAVA stream; no second process or separate parser.
+    // Keep Lyrica mounted even while MPRIS changes tracks or LyricsService fetches lyrics.
+    visible: true
+    opacity: 1
     clip: false
 
     Behavior on widgetWidth { animation: Appearance.animation.elementResize.numberAnimation.createObject(root) }
@@ -209,9 +191,22 @@ AbstractBackgroundWidget {
         running: root.visible
         onTriggered: {
             root.shimmer = root.shimmer + 0.013
-            // Fast attack, gentle release. No hard threshold: quiet passages still produce visible motion.
-            const response = root.audioTargetEnergy > root.audioEnergy ? 0.34 : 0.075
-            root.audioEnergy += (root.audioTargetEnergy - root.audioEnergy) * response
+            // Same 0..1000 stream used by the shell bar and desktop visualizer.
+            const points = GlobalStates.visualizerPoints || []
+            let bassSum = 0
+            let bassPeak = 0
+            const bassCount = Math.min(8, points.length)
+            for (let i = 0; i < bassCount; i++) {
+                const level = Math.max(0, Math.min(1, Number(points[i] || 0) / 1000))
+                bassSum += level
+                bassPeak = Math.max(bassPeak, level)
+            }
+            const bassMean = bassCount > 0 ? bassSum / bassCount : 0
+            const target = Math.max(0, Math.min(1, bassMean * 2.4 + bassPeak * 0.85))
+            root.audioTargetEnergy = target
+            // Fast attack and slower release keep the kick perceptible without jitter.
+            const response = target > root.audioEnergy ? 0.48 : 0.105
+            root.audioEnergy += (target - root.audioEnergy) * response
             root.beatPulse = root.audioEnergy
             root.lyricBounce = root.bounceEnabled ? Math.min(1, root.audioEnergy * root.bounceIntensity) : 0
             const active = LyricsService.activeIndex
@@ -570,6 +565,22 @@ AbstractBackgroundWidget {
             }
         }
 
+        Text {
+            anchors.centerIn: parent
+            width: parent.width * 0.72
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
+            visible: LyricsService.lyricsLines.length === 0
+            text: LyricsService.activePlayer
+                ? (LyricsService.status === "error" ? "No se encontraron letras para esta canción" : "Buscando letras…")
+                : "Lyrica está lista · reproduce música para comenzar"
+            color: root.lyricColor
+            font.family: root.lyricFont
+            font.pixelSize: 19
+            font.weight: Font.Medium
+            opacity: 0.82
+        }
+
         Column {
             id: stack
             anchors.fill: parent
@@ -578,7 +589,7 @@ AbstractBackgroundWidget {
             spacing: 0
             opacity: root.songDone ? 0 : 1
             Behavior on opacity { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
-            scale: root.bounceEnabled ? 1 + root.beatPulse * 0.006 : 1
+            scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.035 : 1
             transformOrigin: Item.Center
             layer.enabled: true
             layer.effect: MultiEffect {
@@ -735,10 +746,10 @@ AbstractBackgroundWidget {
                             Text {
                                 id: romanizedMain
                                 x: 0
-                                y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) + (row.current && root.waveLettersEnabled ? Math.sin(root.shimmer * Number(root.configEntry.waveSpeed ?? 0.75) + row.index * 0.7) * Number(root.configEntry.waveIntensity ?? 0.35) * 1.7 : 0)
+                                y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) + (row.current && root.waveLettersEnabled ? Math.sin(root.shimmer * Number(root.configEntry.waveSpeed ?? 0.75) + row.index * 0.7) * Number(root.configEntry.waveIntensity ?? 0.35) * 1.7 : 0) - (row.current ? root.lyricBounce * 10 : 0)
                                 width: parent.width
                                 height: row.hanOnlyText ? Math.max(20, parent.height - 15) : parent.height
-                                scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.022 : 1
+                                scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.105 : 1
                                 transformOrigin: Item.Center
                                 layer.enabled: true
                                 layer.effect: MultiEffect {
@@ -755,7 +766,7 @@ AbstractBackgroundWidget {
                                 color: row.current ? root.lyricColor : root.mutedColor
                                 font.family: root.lyricFont
                                 font.pixelSize: row.current ? Math.min(36, root.rowHeight * 0.47) : row.dist === 1 ? Math.min(26, root.rowHeight * 0.35) : Math.min(21, root.rowHeight * 0.29)
-                                font.weight: row.current ? Font.DemiBold : Font.Medium
+                                font.weight: row.current ? root.lyricFontWeight : Math.max(400, root.lyricFontWeight - 200)
                                 font.letterSpacing: row.current ? 0.15 : 0
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -764,38 +775,13 @@ AbstractBackgroundWidget {
                                 maximumLineCount: 2
                                 fontSizeMode: Text.Fit
                                 minimumPixelSize: 11
-                                opacity: row.current && root.waveLettersEnabled ? 0 : (root.instrumentalNow ? 0.09 : row.fade * row.lyricFade)
+                                opacity: root.instrumentalNow ? 0.09 : row.fade * row.lyricFade
                                 style: Text.Outline
                                 // Subtle +2% outline weight/intensity, keeping the existing look.
                                 styleColor: Qt.rgba(Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).r, Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).g, Qt.darker(row.current ? root.lyricColor : root.mutedColor, 2.35).b, 0.98)
                                 Behavior on opacity { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
                                 Behavior on color { ColorAnimation { duration: 360 } }
                                 Behavior on font.pixelSize { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
-                            }
-                            Item {
-                                visible: row.current && root.waveLettersEnabled && !root.instrumentalNow && !root.songDone
-                                anchors.fill: parent
-                                Row {
-                                    anchors.centerIn: parent
-                                    width: implicitWidth
-                                    height: parent.height
-                                    scale: Math.min(1, parent.width / Math.max(1, implicitWidth))
-                                    Repeater {
-                                        model: Array.from(row.displayText || "")
-                                        delegate: Text {
-                                            required property int index
-                                            required property string modelData
-                                            text: modelData
-                                            font: romanizedMain.font
-                                            color: romanizedMain.color
-                                            style: Text.Outline
-                                            styleColor: romanizedMain.styleColor
-                                            opacity: row.fade * row.lyricFade
-                                            y: Math.sin(root.shimmer * Number(root.configEntry.waveSpeed ?? 0.75) + index * 0.68) * Number(root.configEntry.waveIntensity ?? 0.35) * 5.2
-                                            Behavior on y { NumberAnimation { duration: 90; easing.type: Easing.OutSine } }
-                                        }
-                                    }
-                                }
                             }
                             Item {
                                 visible: row.current && !root.instrumentalNow && !root.songDone
