@@ -11,8 +11,6 @@ import qs.modules.common.widgets
 Item {
     id: root
 
-    signal styleEditorRequested()
-
     readonly property bool vertical: Config.options.bar.vertical
     property color contentColor: Appearance.colors.colOnLayer1
     property bool contentColorOverridden: false
@@ -122,8 +120,12 @@ Item {
                                     : `togglespecialworkspace ${specialSlot.modelData}`;
                                 Hyprland.dispatch(command);
                             }
-                        } else {
-                            root.styleEditorRequested();
+                        } else if (specialSlot.active) {
+                            // Right-click closes the currently visible special workspace.
+                            const command = Hyprland.usingLua
+                                ? "hl.dsp.workspace.toggle_special('" + specialSlot.modelData + "')"
+                                : "togglespecialworkspace " + specialSlot.modelData;
+                            Hyprland.dispatch(command);
                         }
                         return;
                     }
