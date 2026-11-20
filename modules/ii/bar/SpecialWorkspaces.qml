@@ -178,7 +178,7 @@ Item {
 
                 onClicked: mouse => {
                     if (mouse.button === Qt.RightButton) {
-                        if ((mouse.modifiers & Qt.MetaModifier) !== 0) {
+                        if (GlobalStates.superDown || (mouse.modifiers & Qt.MetaModifier) !== 0) {
                             // Capture delegate data before changing the model; removal can
                             // destroy this delegate immediately.
                             const workspaceName = specialSlot.modelData;
@@ -191,7 +191,7 @@ Item {
                                     : "togglespecialworkspace " + workspaceName;
                                 Hyprland.dispatch(command);
                             }
-                        } else if (specialSlot.active) {
+                        } else if (wsModel.specialWorkspaceName === specialSlot.modelData) {
                             // Right-click closes the currently visible special workspace.
                             const command = Hyprland.usingLua
                                 ? "hl.dsp.workspace.toggle_special('" + specialSlot.modelData + "')"
