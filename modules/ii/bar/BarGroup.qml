@@ -23,10 +23,9 @@ Item {
     readonly property bool flatBR: (morphEdge === "bottom" || morphEdge === "right") && morphEndFlat
 
     readonly property string borderlessMode: Config.options?.bar.borderless ?? "pills"
-    readonly property bool styleEditable: !root.isMaterial && root.paintBackground && root.widgetName !== ""
+    readonly property bool styleEditable: root.paintBackground && root.widgetName !== ""
     property var stylePreview: ({})
     readonly property var style: {
-        if (root.isMaterial) return ({});
         const entry = (Config.options.bar.widgetStyles ?? []).find(e => e.mode === root.borderlessMode && e.widget === root.widgetName);
         return Object.assign({}, entry ?? {}, root.stylePreview);
     }
@@ -44,7 +43,7 @@ Item {
     readonly property bool rightClickFree: !["updatesCount", "weatherBar", "bluetooth", "workspaces", "sysTray", "media", "docktoPanel"].includes(root.widgetName)
 
     readonly property Item loadedWidget: gridLayout.children[0]?.item ?? null
-    readonly property bool hasContentOverride: !root.isMaterial && root.style.color !== undefined && root.style.color !== "transparent"
+    readonly property bool hasContentOverride: root.style.color !== undefined && root.style.color !== "transparent"
     readonly property color contentColor: {
         const name = root.style.color ?? "";
         const special = { surfaceContainer: "onSurface", onError: "error", onLayer0: "layer0" };
