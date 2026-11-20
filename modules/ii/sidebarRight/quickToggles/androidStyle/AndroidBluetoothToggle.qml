@@ -9,16 +9,6 @@ import Quickshell.Bluetooth
 
 AndroidQuickToggleButton {
     id: root
-
-    // Bypass the nested toggle -> delegate chooser -> panel signal chain.
-    // SidebarRightContent already listens to this global request signal.
-    function requestDeviceDialog() {
-        GlobalStates.requestBluetoothDialog();
-    }
-
-    toggleModel: BluetoothToggle {
-        mainAction: () => root.requestDeviceDialog()
-    }
-
-    onOpenMenu: root.requestDeviceDialog()
+    
+    toggleModel: BluetoothToggle {}
 }
