@@ -169,9 +169,10 @@ Item {
                 onExited: specialSlot.hovered = false
 
                 onWheel: event => {
-                    if (event.angleDelta.y < 0)
+                    const delta = event.angleDelta.y || event.pixelDelta.y;
+                    if (delta < 0)
                         root.cycleSpecialWorkspace(1);
-                    else if (event.angleDelta.y > 0)
+                    else if (delta > 0)
                         root.cycleSpecialWorkspace(-1);
                     event.accepted = true;
                 }
