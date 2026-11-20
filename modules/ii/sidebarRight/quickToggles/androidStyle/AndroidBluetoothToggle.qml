@@ -9,6 +9,10 @@ import Quickshell.Bluetooth
 
 AndroidQuickToggleButton {
     id: root
-    
-    toggleModel: BluetoothToggle {}
+
+    // This tile is the entry point to the nearby-device list.
+    // A normal click must open the dialog instead of only toggling the adapter.
+    toggleModel: BluetoothToggle {
+        mainAction: () => root.openMenu()
+    }
 }
