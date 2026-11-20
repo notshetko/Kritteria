@@ -1070,7 +1070,6 @@ AbstractBackgroundWidget {
         configEntry: root.configEntry
         open: root.settingsOpen && !Config.options.background.widgetsLocked
         accent: "#a9baff"
-        surfaceColor: Appearance.colors.colSurfaceContainer ?? Appearance.colors.colLayer1 ?? "#281c38"
     }
 
     ResizeHandler {
