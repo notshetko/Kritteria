@@ -24,7 +24,6 @@ Rectangle {
     property real waveSpeed: 1.0
     property real cloudOpacity: 0.42
     property string accentMode: "album"
-    property string customAccentColor: "#a9baff"
     signal settingChanged(string key, var value)
 
     visible: open
@@ -40,7 +39,6 @@ Rectangle {
 
     function resetDefaults() {
         setValue("accentMode", "album")
-        setValue("customAccentColor", "#a9baff")
         setValue("enableBlur", true)
         setValue("enableBounce", true)
         setValue("bounceIntensity", 0.55)
@@ -191,7 +189,7 @@ Rectangle {
                         width: parent.width
                         spacing: 6
                         Repeater {
-                            model: [{ title: "Carátula", key: "album" }, { title: "Tema", key: "theme" }, { title: "Personalizado", key: "custom" }]
+                            model: [{ title: "Carátula", key: "album" }, { title: "Tema", key: "theme" }]
                             delegate: Rectangle {
                                 required property var modelData
                                 width: (parent.width - 12) / 3
@@ -201,43 +199,6 @@ Rectangle {
                                 border.color: String(root.accentMode) === modelData.key ? "#75a9baff" : "#20ffffff"
                                 Text { anchors.centerIn: parent; text: modelData.title; color: "#edf0fb"; font.pixelSize: 11 }
                                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setValue("accentMode", modelData.key) }
-                            }
-                        }
-                    }
-                    Rectangle {
-                        width: parent.width
-                        height: 42
-                        radius: 10
-                        color: "#0effffff"
-                        visible: String(root.accentMode) === "custom"
-                        Row {
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 10
-                            Text { text: "HEX"; color: "#aeb7ce"; anchors.verticalCenter: parent.verticalCenter; font.pixelSize: 11 }
-                            TextInput {
-                                id: customAccentField
-                                width: parent.width - 45
-                                height: 26
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: String(root.customAccentColor)
-                                color: "#f5f6ff"
-                                font.pixelSize: 13
-                                verticalAlignment: TextInput.AlignVCenter
-                                selectByMouse: true
-                                activeFocusOnPress: true
-                                cursorVisible: activeFocus
-                                clip: true
-                                onTextEdited: {
-                                    if (/^#[0-9a-fA-F]{6}$/.test(text))
-                                        root.setValue("customAccentColor", text)
-                                }
-                                onEditingFinished: {
-                                    if (/^#[0-9a-fA-F]{6}$/.test(text))
-                                        root.setValue("customAccentColor", text)
-                                    else
-                                        text = String(root.customAccentColor)
-                                }
                             }
                         }
                     }
