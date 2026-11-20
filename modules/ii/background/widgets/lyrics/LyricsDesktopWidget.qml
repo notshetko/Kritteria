@@ -62,7 +62,6 @@ AbstractBackgroundWidget {
     property real waveSpeed: Number(configEntry.waveSpeed ?? 1.0)
     property real cloudOpacity: Number(configEntry.cloudOpacity ?? 0.55)
     property string accentMode: String(configEntry.accentMode ?? "album")
-    property string customAccentColor: String(configEntry.customAccentColor ?? "#b7a1ff")
     readonly property real rowHeight: Math.max(44, Math.min(90, (root.height - 30) / 7))
     onActiveWordIndexChanged: {
         if (root.karaokeBallEnabled && root.activeWordIndex >= 0)
@@ -83,7 +82,6 @@ AbstractBackgroundWidget {
     property color albumSecondaryColor: Appearance.colors.colSecondary ?? "#8bc8ff"
     readonly property color albumGlowColor: root.albumBaseColor
     readonly property color lyricColor: {
-        if (root.accentMode === "custom") return root.customAccentColor
         if (root.accentMode === "theme") return Appearance.colors.colPrimary ?? "#b7a1ff"
         const c = root.albumBaseColor
         const luminance = c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722
@@ -92,7 +90,6 @@ AbstractBackgroundWidget {
     readonly property color accentColor: {
         const mode = root.accentMode
         if (mode === "theme") return Appearance.colors.colPrimary ?? "#b7a1ff"
-        if (mode === "custom") return root.customAccentColor
         return root.albumSecondaryColor
     }
     readonly property color mutedColor: Qt.lighter(root.albumBaseColor, 1.42)
@@ -134,7 +131,6 @@ AbstractBackgroundWidget {
         else if (key === "waveSpeed") { root.waveSpeed = Number(value); root.configEntry.waveSpeed = Number(value) }
         else if (key === "cloudOpacity") { root.cloudOpacity = Number(value); root.configEntry.cloudOpacity = Number(value) }
         else if (key === "accentMode") { root.accentMode = String(value); root.configEntry.accentMode = String(value) }
-        else if (key === "customAccentColor") { root.customAccentColor = String(value); root.configEntry.customAccentColor = String(value) }
     }
 
     function normalizeLyricGeometry(value) {
@@ -842,7 +838,8 @@ AbstractBackgroundWidget {
                                 // Full-frame chromatic ghosts only flare during a glitch burst.
                                 Text {
                                     z: 1
-                                    anchors.fill: parent
+                                    width: parent.width
+                                    height: parent.height
                                     text: row.displayText
                                     font: romanizedMain.font
                                     horizontalAlignment: romanizedMain.horizontalAlignment
@@ -853,7 +850,8 @@ AbstractBackgroundWidget {
                                 }
                                 Text {
                                     z: 2
-                                    anchors.fill: parent
+                                    width: parent.width
+                                    height: parent.height
                                     text: row.displayText
                                     font: romanizedMain.font
                                     horizontalAlignment: romanizedMain.horizontalAlignment
