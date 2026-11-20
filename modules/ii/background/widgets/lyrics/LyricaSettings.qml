@@ -12,6 +12,20 @@ Rectangle {
     property bool open: false
     property color accent: "#a9baff"
     property int activeTab: 0
+    property bool enableBlur: true
+    property bool enableBounce: true
+    property bool enableBackground: true
+    property bool enableParticles: true
+    property bool enableKaraokeBall: true
+    property bool enableWaveLetters: false
+    property real bounceIntensity: 0.55
+    property int lyricFontWeight: 750
+    property real waveIntensity: 0.38
+    property real waveSpeed: 1.0
+    property real cloudOpacity: 0.42
+    property string accentMode: "album"
+    property string customAccentColor: "#a9baff"
+    signal settingChanged(string key, var value)
 
     visible: open
     opacity: open ? 1 : 0
@@ -22,29 +36,23 @@ Rectangle {
     clip: true
     Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
-    function value(key, fallback) {
-        const v = root.configEntry[key]
-        return v === undefined || v === null ? fallback : v
-    }
+    function setValue(key, value) { root.settingChanged(key, value) }
 
     function resetDefaults() {
-        root.configEntry.accentMode = "album"
-        root.configEntry.customAccentColor = "#a9baff"
-        root.configEntry.enableBlur = true
-        root.configEntry.enableBounce = true
-        root.configEntry.bounceIntensity = 0.55
-        root.configEntry.lyricFontWeight = 750
-        root.configEntry.enableWaveLetters = false
-        root.configEntry.waveIntensity = 0.38
-        root.configEntry.waveSpeed = 1.0
-        root.configEntry.enableBackground = true
-        root.configEntry.cloudOpacity = 0.42
-        root.configEntry.enableParticles = true
-        root.configEntry.enableKaraokeBall = true
+        setValue("accentMode", "album")
+        setValue("customAccentColor", "#a9baff")
+        setValue("enableBlur", true)
+        setValue("enableBounce", true)
+        setValue("bounceIntensity", 0.55)
+        setValue("lyricFontWeight", 750)
+        setValue("enableWaveLetters", false)
+        setValue("waveIntensity", 0.38)
+        setValue("waveSpeed", 1.0)
+        setValue("enableBackground", true)
+        setValue("cloudOpacity", 0.42)
+        setValue("enableParticles", true)
+        setValue("enableKaraokeBall", true)
     }
-
-
-
 
     ColumnLayout {
         anchors.fill: parent
@@ -146,15 +154,15 @@ Rectangle {
                     }
                     LyricaSettingRow {
                         label: "Grosor de la línea principal"
-                        valueText: String(Math.round(Number(root.value("lyricFontWeight", 750))))
+                        valueText: String(Math.round(Number(root.lyricFontWeight)))
                         accent: root.accent
                     }
                     LyricaStudioSlider {
                         width: parent.width
                         from: 400; to: 900; stepSize: 50
-                        value: Number(root.value("lyricFontWeight", 750))
+                        value: Number(root.lyricFontWeight)
                         accent: root.accent
-                        onMoved: root.configEntry.lyricFontWeight = value
+                        onMoved: root.setValue("lyricFontWeight", value)
                     }
                     Rectangle {
                         width: parent.width
@@ -171,7 +179,7 @@ Rectangle {
                                 color: "#f6f7ff"
                                 font.family: Appearance.font.family.main
                                 font.pixelSize: 20
-                                font.weight: Number(root.value("lyricFontWeight", 750))
+                                font.weight: Number(root.lyricFontWeight)
                             }
                             Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Vista previa en vivo"; color: "#aeb7ce"; font.pixelSize: 10 }
                         }
@@ -187,10 +195,10 @@ Rectangle {
                                 width: (parent.width - 12) / 3
                                 height: 36
                                 radius: 10
-                                color: String(root.value("accentMode", "album")) === modelData.key ? "#2ca9baff" : "#0dffffff"
-                                border.color: String(root.value("accentMode", "album")) === modelData.key ? "#75a9baff" : "#20ffffff"
+                                color: String(root.accentMode) === modelData.key ? "#2ca9baff" : "#0dffffff"
+                                border.color: String(root.accentMode) === modelData.key ? "#75a9baff" : "#20ffffff"
                                 Text { anchors.centerIn: parent; text: modelData.title; color: "#edf0fb"; font.pixelSize: 11 }
-                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.configEntry.accentMode = modelData.key }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.setValue("accentMode", modelData.key) }
                             }
                         }
                     }
@@ -199,7 +207,7 @@ Rectangle {
                         height: 42
                         radius: 10
                         color: "#0effffff"
-                        visible: String(root.value("accentMode", "album")) === "custom"
+                        visible: String(root.accentMode) === "custom"
                         Row {
                             anchors.fill: parent
                             anchors.margins: 10
@@ -208,11 +216,11 @@ Rectangle {
                             TextInput {
                                 width: parent.width - 45
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: String(root.value("customAccentColor", "#a9baff"))
+                                text: String(root.customAccentColor)
                                 color: "#f5f6ff"
                                 font.pixelSize: 13
                                 selectByMouse: true
-                                onEditingFinished: if (/^#[0-9a-fA-F]{6}$/.test(text)) root.configEntry.customAccentColor = text
+                                onEditingFinished: if (/^#[0-9a-fA-F]{6}$/.test(text)) root.setValue("customAccentColor", text)
                             }
                         }
                     }
@@ -221,7 +229,7 @@ Rectangle {
                         height: 32
                         spacing: 10
                         Text { text: "Bola de seguimiento karaoke"; color: "#e7eaf6"; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        LyricaStudioToggle { checked: root.value("enableKaraokeBall", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableKaraokeBall = next }
+                        LyricaStudioToggle { checked: root.enableKaraokeBall; anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.setValue("enableKaraokeBall", checked) }
                     }
                 }
             }
@@ -244,50 +252,50 @@ Rectangle {
                         width: parent.width
                         height: 32
                         Text { text: "Rebote musical"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        LyricaStudioToggle { checked: root.value("enableBounce", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBounce = next }
+                        LyricaStudioToggle { checked: root.enableBounce; anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.setValue("enableBounce", checked) }
                     }
                     LyricaSettingRow {
                         label: "Intensidad del rebote"
-                        valueText: Math.round(Number(root.value("bounceIntensity", 0.55)) * 100) + "%"
+                        valueText: Math.round(Number(root.bounceIntensity) * 100) + "%"
                         accent: root.accent
                     }
                     LyricaStudioSlider {
                         width: parent.width
                         from: 0.1; to: 1.0; stepSize: 0.05
-                        value: Number(root.value("bounceIntensity", 0.55))
+                        value: Number(root.bounceIntensity)
                         accent: root.accent
-                        onMoved: root.configEntry.bounceIntensity = value
+                        onMoved: root.setValue("bounceIntensity", value)
                     }
                     Rectangle { width: parent.width; height: 1; color: "#20ffffff" }
                     Row {
                         width: parent.width
                         height: 32
                         Text { text: "Onda serpenteante"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        LyricaStudioToggle { checked: root.value("enableWaveLetters", false); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableWaveLetters = next }
+                        LyricaStudioToggle { checked: root.enableWaveLetters; anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.setValue("enableWaveLetters", checked) }
                     }
                     LyricaSettingRow {
                         label: "Intensidad de onda"
-                        valueText: Math.round(Number(root.value("waveIntensity", 0.38)) * 100) + "%"
+                        valueText: Math.round(Number(root.waveIntensity) * 100) + "%"
                         accent: root.accent
                     }
                     LyricaStudioSlider {
                         width: parent.width
                         from: 0; to: 1; stepSize: 0.025
-                        value: Number(root.value("waveIntensity", 0.38))
+                        value: Number(root.waveIntensity)
                         accent: root.accent
-                        onMoved: root.configEntry.waveIntensity = value
+                        onMoved: root.setValue("waveIntensity", value)
                     }
                     LyricaSettingRow {
                         label: "Velocidad de onda"
-                        valueText: Number(root.value("waveSpeed", 1.0)).toFixed(2) + "×"
+                        valueText: Number(root.waveSpeed).toFixed(2) + "×"
                         accent: root.accent
                     }
                     LyricaStudioSlider {
                         width: parent.width
                         from: 0.25; to: 2.0; stepSize: 0.05
-                        value: Number(root.value("waveSpeed", 1.0))
+                        value: Number(root.waveSpeed)
                         accent: root.accent
-                        onMoved: root.configEntry.waveSpeed = value
+                        onMoved: root.setValue("waveSpeed", value)
                     }
                 }
             }
@@ -310,31 +318,31 @@ Rectangle {
                         width: parent.width
                         height: 32
                         Text { text: "Nube de fondo"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        LyricaStudioToggle { checked: root.value("enableBackground", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBackground = next }
+                        LyricaStudioToggle { checked: root.enableBackground; anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.setValue("enableBackground", checked) }
                     }
                     LyricaSettingRow {
                         label: "Opacidad de la nube"
-                        valueText: Math.round(Number(root.value("cloudOpacity", 0.42)) * 100) + "%"
+                        valueText: Math.round(Number(root.cloudOpacity) * 100) + "%"
                         accent: root.accent
                     }
                     LyricaStudioSlider {
                         width: parent.width
                         from: 0; to: 1; stepSize: 0.025
-                        value: Number(root.value("cloudOpacity", 0.42))
+                        value: Number(root.cloudOpacity)
                         accent: root.accent
-                        onMoved: root.configEntry.cloudOpacity = value
+                        onMoved: root.setValue("cloudOpacity", value)
                     }
                     Row {
                         width: parent.width
                         height: 32
                         Text { text: "Partículas ambientales"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        LyricaStudioToggle { checked: root.value("enableParticles", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableParticles = next }
+                        LyricaStudioToggle { checked: root.enableParticles; anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.setValue("enableParticles", checked) }
                     }
                     Row {
                         width: parent.width
                         height: 32
                         Text { text: "Desenfoque ambiental"; color: "#e7eaf6"; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 60 }
-                        LyricaStudioToggle { checked: root.value("enableBlur", true); anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.configEntry.enableBlur = next }
+                        LyricaStudioToggle { checked: root.enableBlur; anchors.verticalCenter: parent.verticalCenter; onToggled: next => root.setValue("enableBlur", checked) }
                     }
                     Rectangle { width: parent.width; height: 1; color: "#20ffffff" }
                     Text {
