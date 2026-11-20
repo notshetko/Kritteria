@@ -831,49 +831,96 @@ AbstractBackgroundWidget {
                             }
 
 
-                            // Continuous, faint RGB split on the outermost visible rows (4th above/below focus).
-                            // These overlays live inside the rotated lyric Column, so wheel tilt is inherited exactly.
-                            Text {
-                                z: 20
-                                x: romanizedMain.x + Math.sin(root.shimmer * 2.2 + row.index * 0.7) * 2.0
-                                y: romanizedMain.y + Math.cos(root.shimmer * 1.7 + row.index) * 0.55
-                                width: romanizedMain.width
-                                height: romanizedMain.height
+                            // Multi-layer signal breakup: chromatic ghosts, sliced scan bands,
+                            // pixel blocks and short horizontal sync tears. Kept on the distant row.
+                            Item {
+                                z: 22
+                                anchors.fill: romanizedMain
                                 visible: root.glitchEnabled && row.dist === 3 && row.lyricText.length > 0 && !root.instrumentalNow && !root.songDone
-                                text: row.displayText
-                                font: romanizedMain.font
-                                horizontalAlignment: romanizedMain.horizontalAlignment
-                                verticalAlignment: romanizedMain.verticalAlignment
-                                wrapMode: romanizedMain.wrapMode
-                                maximumLineCount: romanizedMain.maximumLineCount
-                                fontSizeMode: romanizedMain.fontSizeMode
-                                minimumPixelSize: romanizedMain.minimumPixelSize
-                                elide: Text.ElideNone
-                                color: "#ff75c8"
-                                opacity: 0.20 + 0.09 * (0.5 + 0.5 * Math.sin(root.shimmer * 1.3 + row.index * 0.4))
-                                layer.enabled: true
-                                layer.effect: MultiEffect { blurEnabled: root.blurEnabled; blur: root.blurEnabled ? 0.12 : 0; blurMax: 8 }
+                                clip: true
+
+                                // Full-frame chromatic ghosts only flare during a glitch burst.
+                                Text {
+                                    z: 1
+                                    anchors.fill: parent
+                                    text: row.displayText
+                                    font: romanizedMain.font
+                                    horizontalAlignment: romanizedMain.horizontalAlignment
+                                    verticalAlignment: romanizedMain.verticalAlignment
+                                    color: "#ff4fb8"
+                                    x: Math.sin(root.shimmer * 8.1 + row.index) * 5
+                                    opacity: Math.pow(Math.max(0, Math.sin(root.shimmer * 3.7 + row.index * 1.9)), 10) * 0.82
+                                }
+                                Text {
+                                    z: 2
+                                    anchors.fill: parent
+                                    text: row.displayText
+                                    font: romanizedMain.font
+                                    horizontalAlignment: romanizedMain.horizontalAlignment
+                                    verticalAlignment: romanizedMain.verticalAlignment
+                                    color: "#5cf6ff"
+                                    x: Math.cos(root.shimmer * 7.3 + row.index * 0.6) * 6
+                                    opacity: Math.pow(Math.max(0, Math.sin(root.shimmer * 4.1 + row.index * 2.4 + 1.2)), 9) * 0.78
+                                }
+
+                                // Thin horizontal slices move independently, like damaged video sync.
+                                Repeater {
+                                    model: 6
+                                    delegate: Item {
+                                        required property int index
+                                        readonly property real bandHeight: Math.max(3, romanizedMain.height * (0.045 + (index % 3) * 0.018))
+                                        x: 0
+                                        y: (parent.height - height) * (index / 5)
+                                        width: parent.width
+                                        height: bandHeight
+                                        clip: true
+                                        opacity: {
+                                            const pulse = Math.sin(root.shimmer * (5.4 + index * 0.31) + row.index * 1.7 + index * 2.1)
+                                            return pulse > 0.52 ? Math.min(1, (pulse - 0.52) * 2.8) : 0
+                                        }
+                                        Text {
+                                            text: row.displayText
+                                            font: romanizedMain.font
+                                            horizontalAlignment: romanizedMain.horizontalAlignment
+                                            verticalAlignment: romanizedMain.verticalAlignment
+                                            width: romanizedMain.width
+                                            height: romanizedMain.height
+                                            x: Math.sin(root.shimmer * (9.0 + index) + row.index) * (7 + index * 2)
+                                            y: -parent.y + Math.cos(root.shimmer * 6.2 + index * 1.8) * 2
+                                            color: index % 3 === 0 ? "#ff4fb8" : index % 3 === 1 ? "#5cf6ff" : "#f7f5ff"
+                                            opacity: 0.92
+                                        }
+                                    }
+                                }
+
+                                // Short data blocks and scanline cuts add hard, pixel-like interruptions.
+                                Repeater {
+                                    model: 7
+                                    delegate: Rectangle {
+                                        required property int index
+                                        readonly property real pulse: Math.sin(root.shimmer * (6.7 + index * 0.37) + row.index * 2.3 + index * 1.6)
+                                        x: Math.abs(Math.sin(row.index * 13.1 + index * 7.7 + root.shimmer * 2.6)) * Math.max(1, parent.width - width)
+                                        y: Math.abs(Math.cos(row.index * 4.3 + index * 5.1)) * Math.max(1, parent.height - height)
+                                        width: Math.max(5, parent.width * (0.035 + Math.abs(Math.sin(index * 8.2)) * 0.12))
+                                        height: index % 3 === 0 ? 4 : 2
+                                        color: index % 3 === 0 ? "#ff4fb8" : index % 3 === 1 ? "#5cf6ff" : "#f7f5ff"
+                                        opacity: pulse > 0.58 ? Math.min(0.95, (pulse - 0.58) * 2.9) : 0
+                                    }
+                                }
+
+                                // Brief white scan cuts, deliberately sparse so the lyric remains readable.
+                                Repeater {
+                                    model: 3
+                                    delegate: Rectangle {
+                                        required property int index
+                                        width: parent.width
+                                        height: 1
+                                        y: parent.height * (0.22 + index * 0.27)
+                                        color: "#eafcff"
+                                        opacity: Math.max(0, Math.sin(root.shimmer * 11.0 + row.index + index * 2.7) - 0.88) * 0.8
+                                    }
+                                }
                             }
-                            Text {
-                                z: 19
-                                x: romanizedMain.x + Math.cos(root.shimmer * 2.0 + row.index * 0.8) * 1.65
-                                y: romanizedMain.y + Math.sin(root.shimmer * 1.45 + row.index) * 0.5
-                                width: romanizedMain.width
-                                height: romanizedMain.height
-                                visible: root.glitchEnabled && row.dist === 3 && row.lyricText.length > 0 && !root.instrumentalNow && !root.songDone
-                                text: row.displayText
-                                font: romanizedMain.font
-                                horizontalAlignment: romanizedMain.horizontalAlignment
-                                verticalAlignment: romanizedMain.verticalAlignment
-                                wrapMode: romanizedMain.wrapMode
-                                maximumLineCount: romanizedMain.maximumLineCount
-                                fontSizeMode: romanizedMain.fontSizeMode
-                                minimumPixelSize: romanizedMain.minimumPixelSize
-                                elide: Text.ElideNone
-                                color: "#77f3ff"
-                                opacity: 0.15 + 0.08 * (0.5 + 0.5 * Math.cos(root.shimmer * 1.1 + row.index * 0.5))
-                                layer.enabled: true
-                                layer.effect: MultiEffect { blurEnabled: root.blurEnabled; blur: root.blurEnabled ? 0.12 : 0; blurMax: 8 }
                             }
                         }
                     }
