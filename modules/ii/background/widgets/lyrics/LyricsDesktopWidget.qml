@@ -859,61 +859,21 @@ AbstractBackgroundWidget {
                                     opacity: Math.pow(Math.max(0, Math.sin(root.shimmer * 4.1 + row.index * 2.4 + 1.2)), 9) * 0.78
                                 }
 
-                                // Thin horizontal slices move independently, like damaged video sync.
+                                // Tiny, disconnected data fragments flicker briefly at unrelated positions.
+                                // No full-width slices or scan bars: the lyric stays clean and readable.
                                 Repeater {
-                                    model: 6
-                                    delegate: Item {
-                                        required property int index
-                                        readonly property real bandHeight: Math.max(3, romanizedMain.height * (0.045 + (index % 3) * 0.018))
-                                        x: 0
-                                        y: (parent.height - height) * (index / 5)
-                                        width: parent.width
-                                        height: bandHeight
-                                        clip: true
-                                        opacity: {
-                                            const pulse = Math.sin(root.shimmer * (5.4 + index * 0.31) + row.index * 1.7 + index * 2.1)
-                                            return pulse > 0.52 ? Math.min(1, (pulse - 0.52) * 2.8) : 0
-                                        }
-                                        Text {
-                                            text: row.displayText
-                                            font: romanizedMain.font
-                                            horizontalAlignment: romanizedMain.horizontalAlignment
-                                            verticalAlignment: romanizedMain.verticalAlignment
-                                            width: romanizedMain.width
-                                            height: romanizedMain.height
-                                            x: Math.sin(root.shimmer * (9.0 + index) + row.index) * (7 + index * 2)
-                                            y: -parent.y + Math.cos(root.shimmer * 6.2 + index * 1.8) * 2
-                                            color: index % 3 === 0 ? "#ff4fb8" : index % 3 === 1 ? "#5cf6ff" : "#f7f5ff"
-                                            opacity: 0.92
-                                        }
-                                    }
-                                }
-
-                                // Short data blocks and scanline cuts add hard, pixel-like interruptions.
-                                Repeater {
-                                    model: 7
+                                    model: 12
                                     delegate: Rectangle {
                                         required property int index
-                                        readonly property real pulse: Math.sin(root.shimmer * (6.7 + index * 0.37) + row.index * 2.3 + index * 1.6)
-                                        x: Math.abs(Math.sin(row.index * 13.1 + index * 7.7 + root.shimmer * 2.6)) * Math.max(1, parent.width - width)
-                                        y: Math.abs(Math.cos(row.index * 4.3 + index * 5.1)) * Math.max(1, parent.height - height)
-                                        width: Math.max(5, parent.width * (0.035 + Math.abs(Math.sin(index * 8.2)) * 0.12))
-                                        height: index % 3 === 0 ? 4 : 2
+                                        readonly property real seed: row.index * 19.73 + index * 47.17
+                                        readonly property real flicker: Math.sin(root.shimmer * (31.0 + index * 2.7) + seed * 3.1)
+                                        x: Math.abs(Math.sin(root.shimmer * (17.0 + index * 1.9) + seed)) * Math.max(1, parent.width - width)
+                                        y: Math.abs(Math.cos(root.shimmer * (23.0 + index * 1.3) + seed * 1.7)) * Math.max(1, parent.height - height)
+                                        width: Math.max(2, parent.width * (0.008 + Math.abs(Math.sin(seed * 2.3)) * 0.027))
+                                        height: 2 + Math.floor(Math.abs(Math.cos(seed * 4.1)) * 3)
+                                        radius: 0
                                         color: index % 3 === 0 ? "#ff4fb8" : index % 3 === 1 ? "#5cf6ff" : "#f7f5ff"
-                                        opacity: pulse > 0.58 ? Math.min(0.95, (pulse - 0.58) * 2.9) : 0
-                                    }
-                                }
-
-                                // Brief white scan cuts, deliberately sparse so the lyric remains readable.
-                                Repeater {
-                                    model: 3
-                                    delegate: Rectangle {
-                                        required property int index
-                                        width: parent.width
-                                        height: 1
-                                        y: parent.height * (0.22 + index * 0.27)
-                                        color: "#eafcff"
-                                        opacity: Math.max(0, Math.sin(root.shimmer * 11.0 + row.index + index * 2.7) - 0.88) * 0.8
+                                        opacity: flicker > 0.88 ? Math.min(0.92, (flicker - 0.88) * 8.0) : 0
                                     }
                                 }
                             }
