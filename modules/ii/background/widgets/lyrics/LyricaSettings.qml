@@ -32,7 +32,7 @@ Rectangle {
         root.configEntry.customAccentColor = "#a9baff"
         root.configEntry.enableBlur = true
         root.configEntry.enableBounce = true
-        root.configEntry.bounceIntensity = 1.6
+        root.configEntry.bounceIntensity = 0.55
         root.configEntry.lyricFontWeight = 750
         root.configEntry.enableWaveLetters = false
         root.configEntry.waveIntensity = 0.38
@@ -154,7 +154,7 @@ Rectangle {
                         from: 400; to: 900; stepSize: 50
                         value: Number(root.value("lyricFontWeight", 750))
                         accent: root.accent
-                        onMoved: next => root.configEntry.lyricFontWeight = next
+                        onMoved: root.configEntry.lyricFontWeight = value
                     }
                     Rectangle {
                         width: parent.width
@@ -248,15 +248,15 @@ Rectangle {
                     }
                     LyricaSettingRow {
                         label: "Intensidad del rebote"
-                        valueText: Math.round(Number(root.value("bounceIntensity", 1.6)) * 100) + "%"
+                        valueText: Math.round(Number(root.value("bounceIntensity", 0.55)) * 100) + "%"
                         accent: root.accent
                     }
                     LyricaStudioSlider {
                         width: parent.width
-                        from: 0.5; to: 2.5; stepSize: 0.05
-                        value: Number(root.value("bounceIntensity", 1.6))
+                        from: 0.1; to: 1.0; stepSize: 0.05
+                        value: Number(root.value("bounceIntensity", 0.55))
                         accent: root.accent
-                        onMoved: next => root.configEntry.bounceIntensity = next
+                        onMoved: root.configEntry.bounceIntensity = value
                     }
                     Rectangle { width: parent.width; height: 1; color: "#20ffffff" }
                     Row {
@@ -275,7 +275,7 @@ Rectangle {
                         from: 0; to: 1; stepSize: 0.025
                         value: Number(root.value("waveIntensity", 0.38))
                         accent: root.accent
-                        onMoved: next => root.configEntry.waveIntensity = next
+                        onMoved: root.configEntry.waveIntensity = value
                     }
                     LyricaSettingRow {
                         label: "Velocidad de onda"
@@ -287,7 +287,7 @@ Rectangle {
                         from: 0.25; to: 2.0; stepSize: 0.05
                         value: Number(root.value("waveSpeed", 1.0))
                         accent: root.accent
-                        onMoved: next => root.configEntry.waveSpeed = next
+                        onMoved: root.configEntry.waveSpeed = value
                     }
                 }
             }
@@ -322,7 +322,7 @@ Rectangle {
                         from: 0; to: 1; stepSize: 0.025
                         value: Number(root.value("cloudOpacity", 0.42))
                         accent: root.accent
-                        onMoved: next => root.configEntry.cloudOpacity = next
+                        onMoved: root.configEntry.cloudOpacity = value
                     }
                     Row {
                         width: parent.width
