@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import qs.modules.common
 
 Rectangle {
     id: root
@@ -225,7 +226,7 @@ Rectangle {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 text: "Así se verá la línea principal"
                                 color: "#f8f5ff"
-                                font.family: "Inter"
+                                font.family: Appearance.font.family.main
                                 font.pixelSize: 19
                                 font.weight: Number(root.value("lyricFontWeight", 700))
                             }
