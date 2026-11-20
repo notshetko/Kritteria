@@ -748,7 +748,7 @@ AbstractBackgroundWidget {
                                 fontSizeMode: Text.Fit
                                 minimumPixelSize: 11
                                 opacity: root.waveLettersEnabled && row.current ? 0
-                                    : (root.instrumentalNow ? 0.09 : row.fade * root.lyricFade
+                                    : (root.instrumentalNow ? 0.09 : row.fade * row.lyricFade
                                         * (root.glitchEnabled && row.dist === 3 ? 0.78 + Math.sin(root.shimmer * 11 + row.index) * 0.045 : 1))
                                 style: Text.Outline
                                 // Subtle +2% outline weight/intensity, keeping the existing look.
