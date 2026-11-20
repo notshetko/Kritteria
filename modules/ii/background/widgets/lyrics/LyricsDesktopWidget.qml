@@ -172,6 +172,25 @@ AbstractBackgroundWidget {
 
 
 
+    // Audio analysis stays invisible: CAVA drives motion only, it does not render a spectrum.
+    Process {
+        id: audioAnalysisProcess
+        command: ["/usr/bin/cava", "-p", `${FileUtils.trimFileProtocol(Directories.scriptPath)}/cava/lyrics_output_config.txt`]
+        running: root.visible && LyricsService.playing
+        stderr: SplitParser { onRead: data => console.warn("[Lyrica audio] " + data) }
+        stdout: SplitParser {
+            onRead: data => {
+                const values = String(data).trim().split(/[;,\\s]+/).map(v => Number(v)).filter(v => Number.isFinite(v))
+                if (values.length) {
+                    const normalized = values.map(v => Math.max(0, Math.min(1, v / 100)))
+                    const mean = normalized.reduce((a, b) => a + b, 0) / normalized.length
+                    const peak = Math.max(...normalized)
+                    root.audioTargetEnergy = Math.max(0, Math.min(1, (mean * 0.72 + peak * 0.28) * 2.15))
+                }
+            }
+        }
+    }
+
     // Keep the widget available as soon as lyrics arrive, not only after the first timestamp.
     visible: !!LyricsService.activePlayer && LyricsService.status === "ok" && LyricsService.synced && LyricsService.lyricsLines.length > 0
     opacity: (LyricsService.playing || root.songDone) ? 1 : 0
@@ -716,11 +735,10 @@ AbstractBackgroundWidget {
                             Text {
                                 id: romanizedMain
                                 x: 0
-                                y: row.hanOnlyText ? 0 : (parent.height - height) / 2
+                                y: (row.hanOnlyText ? 0 : (parent.height - height) / 2) + (row.current && root.waveLettersEnabled ? Math.sin(root.shimmer * Number(root.configEntry.waveSpeed ?? 0.75) + row.index * 0.7) * Number(root.configEntry.waveIntensity ?? 0.35) * 1.7 : 0)
                                 width: parent.width
                                 height: row.hanOnlyText ? Math.max(20, parent.height - 15) : parent.height
                                 scale: root.bounceEnabled ? 1 + root.lyricBounce * 0.022 : 1
-                                y: row.current && root.waveLettersEnabled ? Math.sin(root.shimmer * Number(root.configEntry.waveSpeed ?? 0.75) + row.index * 0.7) * Number(root.configEntry.waveIntensity ?? 0.35) * 1.7 : 0
                                 transformOrigin: Item.Center
                                 layer.enabled: true
                                 layer.effect: MultiEffect {
