@@ -180,7 +180,7 @@ AbstractBackgroundWidget {
         stderr: SplitParser { onRead: data => console.warn("[Lyrica audio] " + data) }
         stdout: SplitParser {
             onRead: data => {
-                const values = String(data).trim().split(/[;,\\s]+/).map(v => Number(v)).filter(v => Number.isFinite(v))
+                const values = String(data).trim().split(/[;,\s]+/).map(v => Number(v)).filter(v => Number.isFinite(v))
                 if (values.length) {
                     const normalized = values.map(v => Math.max(0, Math.min(1, v / 100)))
                     const mean = normalized.reduce((a, b) => a + b, 0) / normalized.length
